@@ -1,0 +1,18 @@
+<launch>
+  <!-- Świat Gazebo -->
+  <include file="$(find cyber_is_description)/launch/empty_world.launch">
+    <arg name="paused" value="false"/>
+    <arg name="use_sim_time" value="true"/>
+    <arg name="gui" value="true"/>
+  </include>
+
+  <!-- Model robota -->
+  <arg name="model" default="$(find cyber_is_description)/urdf/cyber_is.xacro"/>
+  <param name="robot_description" command="$(find xacro)/xacro $(arg model)"/>
+
+  <!-- Spawn robota -->
+  <node name="spawn_urdf" pkg="gazebo_ros" type="spawn_model" args="-param robot_description -urdf -model tracked_robot" />
+
+  <!-- Robot State Publisher -->
+  <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher"/>
+</launch>

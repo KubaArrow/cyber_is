@@ -1,0 +1,302 @@
+<?xml version="1.0"?>
+<robot name="tracked_robot" xmlns:xacro="http://ros.org/wiki/xacro">
+  <xacro:include filename="$(find cyber_is_description)/urdf/common_properties.xacro"/>
+
+  <!-- Parametry (stałe) używane w modelu -->
+  <xacro:property name="wheel_radius" value="0.03"/>        <!-- Promień koła (55 mm średnicy) [m] -->
+  <xacro:property name="wheel_diameter" value="${2 * wheel_radius}"/> 
+  <xacro:property name="chassis_height" value="0.04"/>
+  <xacro:property name="track_width" value="0.045"/>          <!-- Szerokość (grubość) gąsienicy/koła [m] -->
+  <xacro:property name="track_spacing" value="0.135"/>        <!-- Rozstaw między gąsienicami (środki) [m] -->
+  <xacro:property name="half_track_spacing" value="${track_spacing / 2.0}"/>  <!-- Połowa rozstawu, odległość od środka do każdej gąsienicy -->
+  <xacro:property name="frame_length" value="0.137"/>         <!-- Długość ramy [m] -->
+  <xacro:property name="frame_width" value="0.079"/>          <!-- Szerokość ramy [m] -->
+  <xacro:property name="chassis_top_height" value="0.052"/>     <!-- Wysokość od podłoża do wierzchu ramy [m] -->
+  <xacro:property name="track_center_height" value="0.03"/>   <!-- Wysokość osi kół / środka gąsienicy nad podłożem [m] -->
+  <xacro:property name="scan_height" value="0.135"/>          <!-- Wysokość skanera nad podłożem [m] -->
+  <!-- Obliczenie pomocnicze: offset do umieszczenia ramy tak, by dolna powierzchnia była na podłożu -->
+  <!-- (base_link jest na wysokości track_center_height, więc przesunięcie = połowa wysokości ramy - track_center_height) -->
+  <xacro:property name="frame_bottom_offset" value="${chassis_top_height/2.0 - track_center_height}"/>
+  
+  <!-- Link bazowy na podłożu -->
+  <link name="base_footprint">
+    <!-- Uproszczona bryła kolizyjna reprezentująca obrys robota (prostokąt obejmujący gąsienice) -->
+    <collision>
+      <!-- Ustawienie pudełka tak, by leżało płasko na podłożu (połowa grubości nad podłożem) -->
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <!-- Prostokąt: długość ~ długości ramy, szerokość ~ rozstaw zewnętrzny gąsienic, niewielka grubość -->
+        <box size="${frame_length} ${track_spacing + track_width} 0.01"/>
+      </geometry>
+    </collision>
+    <!-- Ponieważ base_footprint jest tylko pomocniczy, nie definiujemy widocznej geometrii (visual) -->
+    <inertial>
+      <!-- Bardzo mała masa i momenty bezwładności (link fikcyjny łączony na sztywno z bazą) -->
+      <mass value="0.001"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <inertia ixx="0.0001" ixy="0" ixz="0" iyy="0.0001" iyz="0" izz="0.0001"/>
+    </inertial>
+  </link>
+  
+  <!-- Link główny (rama pojazdu) -->
+  <link name="base_link">
+    <!-- Inercja ramy: przybliżona jako prostopadłościan o podanych wymiarach -->
+    <inertial>
+      <mass value="4.0"/>  <!-- Założona masa całej bazy [kg] -->
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <!-- Moment bezwładności prostopadłościanu: Ixx = m/12*(y^2+z^2), Iyy = m/12*(x^2+z^2), Izz = m/12*(x^2+y^2) -->
+      <inertia 
+          ixx="${4.0 * (frame_width*frame_width + chassis_top_height*chassis_top_height) / 12.0}" 
+          ixy="0" ixz="0"
+          iyy="${4.0 * (frame_length*frame_length + chassis_top_height*chassis_top_height) / 12.0}" 
+          iyz="0" 
+          izz="${4.0 * (frame_length*frame_length + frame_width*frame_width) / 12.0}"/>
+    </inertial>
+    <!-- Widoczna geometria ramy (prostokątne podwozie) -->
+    <visual>
+      <!-- Przesunięcie pudełka tak, by dolna baza pudła pokryła się z podłożem (base_link jest nieco powyżej środka pudełka) -->
+      <origin xyz="0 0 -${chassis_height/2}" rpy="0 0 0"/>
+      <geometry>
+        <box size="${frame_length} ${frame_width} ${chassis_height}"/>
+      </geometry>
+      <material name="Silver"/>  <!-- materiał (np. srebrny) -->
+    </visual>
+    <!-- (Brak osobnej geometrii kolizyjnej dla ramy zgodnie z założeniem, kolizja reprezentowana przez base_footprint) -->
+  </link>
+  
+  <!-- Koła gąsienic (cztery cylindry) -->
+  <!-- Lewe przednie koło -->
+  <link name="left_front_wheel">
+    <inertial>
+      <mass value="0.2"/>  <!-- masa koła [kg] -->
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <!-- Moment bezwładności koła (walca) względem osi symetrii i osi poprzecznych -->
+      <!-- Walec: I_axial = 1/2*m*r^2 (wzdłuż osi walca), I_side = 1/12*m*(3r^2 + L^2) (względem osi przez środek, prostopadłej do walca) -->
+      <inertia 
+          ixx="${0.2 * (3*wheel_radius*wheel_radius + track_width*track_width) / 12.0}" 
+          ixy="0" ixz="0"
+          iyy="${0.2 * (wheel_radius*wheel_radius) / 2.0}" 
+          iyz="0" 
+          izz="${0.2 * (3*wheel_radius*wheel_radius + track_width*track_width) / 12.0}"/>
+    </inertial>
+    <visual>
+      <!-- Obrót geometrii: -90° wokół osi X, aby walec leżał "na boku" (oś walca pokrywa się z osią Y linku, czyli osi obrotu koła) -->
+      <origin xyz="0 0 0" rpy="-1.5708 0 0"/>
+      <geometry>
+        <cylinder radius="${wheel_radius}" length="${track_width}"/>
+      </geometry>
+      <material name="Black"/>
+    </visual>
+    <!-- brak <collision> dla koła -->
+  </link>
+  <!-- Lewe tylne koło -->
+  <link name="left_rear_wheel">
+    <!-- (Analogiczna definicja jak powyżej) -->
+    <inertial>
+      <mass value="0.2"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <inertia 
+          ixx="${0.2 * (3*wheel_radius*wheel_radius + track_width*track_width) / 12.0}" 
+          ixy="0" ixz="0"
+          iyy="${0.2 * (wheel_radius*wheel_radius) / 2.0}" 
+          iyz="0" 
+          izz="${0.2 * (3*wheel_radius*wheel_radius + track_width*track_width) / 12.0}"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="-1.5708 0 0"/>
+      <geometry>
+        <cylinder radius="${wheel_radius}" length="${track_width}"/>
+      </geometry>
+      <material name="Black"/>
+    </visual>
+  </link>
+  <!-- Prawe przednie koło -->
+  <link name="right_front_wheel">
+    <inertial>
+      <mass value="0.2"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <inertia 
+          ixx="${0.2 * (3*wheel_radius*wheel_radius + track_width*track_width) / 12.0}" 
+          ixy="0" ixz="0"
+          iyy="${0.2 * (wheel_radius*wheel_radius) / 2.0}" 
+          iyz="0" 
+          izz="${0.2 * (3*wheel_radius*wheel_radius + track_width*track_width) / 12.0}"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="-1.5708 0 0"/>
+      <geometry>
+        <cylinder radius="${wheel_radius}" length="${track_width}"/>
+      </geometry>
+      <material name="Black"/>
+    </visual>
+  </link>
+  <!-- Prawe tylne koło -->
+  <link name="right_rear_wheel">
+    <inertial>
+      <mass value="0.2"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <inertia 
+          ixx="${0.2 * (3*wheel_radius*wheel_radius + track_width*track_width) / 12.0}" 
+          ixy="0" ixz="0"
+          iyy="${0.2 * (wheel_radius*wheel_radius) / 2.0}" 
+          iyz="0" 
+          izz="${0.2 * (3*wheel_radius*wheel_radius + track_width*track_width) / 12.0}"/>
+    </inertial>
+    <visual>
+      <origin xyz="0 0 0" rpy="-1.5708 0 0"/>
+      <geometry>
+        <cylinder radius="${wheel_radius}" length="${track_width}"/>
+      </geometry>
+      <material name="Black"/>
+    </visual>
+  </link>
+  
+  <!-- Link skanera laserowego na ramie -->
+  <link name="base_scan">
+    <inertial>
+      <mass value="0.1"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <!-- Przybliżony moment bezwładności niewielkiego skanera jako walca -->
+      <inertia 
+          ixx="0.0001" ixy="0" ixz="0" 
+          iyy="0.0001" iyz="0" 
+          izz="0.0001"/>
+    </inertial>
+    <visual>
+      <!-- Cylinder pionowy reprezentujący skaner -->
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <cylinder radius="0.03" length="0.025"/>
+      </geometry>
+      <material name="Blue"/>
+    </visual>
+    <!-- brak geometrii kolizyjnej (skaner nie koliduje) -->
+  </link>
+
+  <!-- Link imu o na ramie -->
+  <link name="imu">
+    <inertial>
+      <mass value="0.1"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <!-- Przybliżony moment bezwładności niewielkiego skanera jako walca -->
+      <inertia
+          ixx="0.0001" ixy="0" ixz="0"
+          iyy="0.0001" iyz="0"
+          izz="0.0001"/>
+    </inertial>
+    <visual>
+      <!-- Cylinder pionowy reprezentujący skaner -->
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <cylinder radius="0.03" length="0.025"/>
+      </geometry>
+      <material name="Red"/>
+    </visual>
+    <!-- brak geometrii kolizyjnej (skaner nie koliduje) -->
+  </link>
+
+  <!-- Link imu o na ramie -->
+  <link name="line_detector">
+    <inertial>
+      <mass value="0.1"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <!-- Przybliżony moment bezwładności niewielkiego skanera jako walca -->
+      <inertia
+              ixx="0.0001" ixy="0" ixz="0"
+              iyy="0.0001" iyz="0"
+              izz="0.0001"/>
+    </inertial>
+    <visual>
+      <!-- Cylinder pionowy reprezentujący skaner -->
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry>
+        <box size="0.01 ${frame_width} 0.01"/>
+      </geometry>
+      <material name="Red"/>
+    </visual>
+    <!-- brak geometrii kolizyjnej (skaner nie koliduje) -->
+  </link>
+  
+  <!-- Połączenia (joints) między linkami -->
+  <!-- Stałe połączenie base_footprint (na ziemi) z base_link (ramą) -->
+  <joint name="base_link_joint" type="fixed">
+    <!-- base_link znajduje się track_center_height nad base_footprint (z = 0.03 m) -->
+    <origin xyz="0 0 ${chassis_top_height}" rpy="0 0 0"/>
+    <parent link="base_footprint"/>
+    <child link="base_link"/>
+  </joint>
+
+  <!-- Połączenia (joints) między linkami -->
+  <!-- Stałe połączenie base_link (na ziemi) z imu (ramą) -->
+  <joint name="imu_joint" type="continuous">
+    <!-- Pozycja: z przodu (x = +half długości), na lewo (y = +half rozstawu), na wysokości osi (z = track_center_height) -->
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <parent link="base_link"/>
+    <child link="imu"/>
+    <!-- Oś obrotu: pozioma, w poprzek pojazdu (oś Y układu bazowego) -->
+  </joint>
+
+  <!-- Połączenia (joints) między linkami -->
+  <!-- Stałe połączenie base_link (na ziemi) z imu (ramą) -->
+  <joint name="line_detector_joint" type="continuous">
+    <!-- Pozycja: z przodu (x = +half długości), na lewo (y = +half rozstawu), na wysokości osi (z = track_center_height) -->
+    <origin xyz="${frame_length/2 +0.005} 0 -${chassis_height}" rpy="0 0 0"/>
+    <parent link="base_link"/>
+    <child link="line_detector"/>
+    <!-- Oś obrotu: pozioma, w poprzek pojazdu (oś Y układu bazowego) -->
+  </joint>
+
+
+  <!-- Koła przymocowane do ramy: przeguby obrotowe (continuous) -->
+  <!-- Lewe przednie koło -->
+  <joint name="left_front_wheel_joint" type="continuous">
+    <!-- Pozycja: z przodu (x = +half długości), na lewo (y = +half rozstawu), na wysokości osi (z = track_center_height) -->
+    <origin xyz="${frame_length/2-0.015} ${half_track_spacing} -${chassis_top_height-chassis_height/2}" rpy="0 0 0"/>
+    <parent link="base_link"/>
+    <child link="left_front_wheel"/>
+    <!-- Oś obrotu: pozioma, w poprzek pojazdu (oś Y układu bazowego) -->
+    <axis xyz="0 1 0"/>
+  </joint>
+  <!-- Lewe tylne koło -->
+  <joint name="left_rear_wheel_joint" type="continuous">
+    <!-- Pozycja: z tyłu (x = -half długości), na lewo (y = +half rozstawu), wysokość osi = track_center_height -->
+    <origin xyz="${-frame_length/2+0.015} ${half_track_spacing} -${chassis_top_height-chassis_height/2}" rpy="0 0 0"/>
+    <parent link="base_link"/>
+    <child link="left_rear_wheel"/>
+    <axis xyz="0 1 0"/>
+  </joint>
+  <!-- Prawe przednie koło -->
+  <joint name="right_front_wheel_joint" type="continuous">
+    <!-- Pozycja: z przodu, na prawo (y = -half rozstawu) -->
+    <origin xyz="${frame_length/2-0.015} ${-half_track_spacing} -${chassis_top_height-chassis_height/2}" rpy="0 0 0"/>
+    <parent link="base_link"/>
+    <child link="right_front_wheel"/>
+    <axis xyz="0 1 0"/>
+  </joint>
+  <!-- Prawe tylne koło -->
+  <joint name="right_rear_wheel_joint" type="continuous">
+    <!-- Pozycja: z tyłu, na prawo -->
+    <origin xyz="${-frame_length/2+0.015} ${-half_track_spacing} -${chassis_top_height-chassis_height/2}" rpy="0 0 0"/>
+    <parent link="base_link"/>
+    <child link="right_rear_wheel"/>
+    <axis xyz="0 1 0"/>
+  </joint>
+  <!-- Stałe połączenie skanera do ramy -->
+  <joint name="base_scan_joint" type="fixed">
+    <!-- Umieszczenie skanera na środku ramy (x=0,y=0) i na wysokości scan_height nad podłożem.
+         Base_link jest track_center_height nad podłożem, więc offset względem base_link to (scan_height - track_center_height). -->
+    <origin xyz="0 0 ${scan_height - chassis_top_height}" rpy="0 0 0"/>
+    <parent link="base_link"/>
+    <child link="base_scan"/>
+  </joint>
+  
+  <!-- (Opcjonalnie można dodać elementy konfiguracyjne dla Gazebo, np. współczynniki tarcia) -->
+  <!-- Przykładowo, zwiększenie tarcia dla powierzchni gąsienic: -->
+  <!--
+  <gazebo reference="base_footprint">
+    <material>Gazebo/Gray</material>
+    <mu1>1.0</mu1>
+    <mu2>1.0</mu2>
+  </gazebo>
+  -->
+</robot>
