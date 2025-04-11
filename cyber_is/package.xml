@@ -1,0 +1,8 @@
+<package format="2">
+  <name>cyber_is</name>
+  <version>0.0.0</version>
+  <description>Meta-package for cyber_is robot</description>
+  <maintainer email="you@example.com">Your Name</maintainer>
+  <license>MIT</license>
+  <buildtool_depend>catkin</buildtool_depend>
+</package>
