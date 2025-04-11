@@ -1,0 +1,3 @@
+<launch>
+    <node name="supervisor" pkg="cyber_is_supervisor" type="supervisor.py"/>
+</launch>

@@ -1,3 +1,4 @@
 /.idea/
 uart_bridge/cmake-build-debug/
 uart_bridge/.idea/
+cyber_is_manual_controller/mjpg-streamer/

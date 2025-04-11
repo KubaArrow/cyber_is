@@ -1,0 +1,13 @@
+<package format="2">
+  <name>cyber_is_manual_controller</name>
+  <version>0.0.1</version>
+  <description>Paczka do uruchamiania trybu manualnego</description>
+  <maintainer email="jakubstrzalkaa@gmail.com">Kuba_Arrow</maintainer>
+  <license>MIT</license>
+
+  <exec_depend>topic_tools</exec_depend>
+  <exec_depend>roslaunch</exec_depend>
+  <exec_depend>catkin</exec_depend>
+  <buildtool_depend>catkin</buildtool_depend>
+
+</package>
