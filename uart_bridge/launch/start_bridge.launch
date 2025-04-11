@@ -1,5 +1,4 @@
 <launch>
-
     <node name="uart_bridge" pkg="uart_bridge" type="uart_bridge" output="screen">
         <param name="uart_port" value="/dev/ttyACM0"/>
         <param name="frequency" value="200"/>

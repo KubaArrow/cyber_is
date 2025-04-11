@@ -30,10 +30,6 @@ target_link_libraries(uart_bridge
         log
         serial_slip
         ${catkin_LIBRARIES}
-        cjson
-        websockets
-        ssl
-        crypto
         pthread
 )
 
