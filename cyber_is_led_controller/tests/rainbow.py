@@ -3,7 +3,7 @@ import rospy
 from std_msgs.msg import UInt8MultiArray
 import colorsys
 
-NUM_LEDS = 12
+NUM_LEDS = 18
 FPS = 30              # liczba klatek na sekundę
 ANIMATION_SPEED = 0.005  # przyrost wartości hue w każdej iteracji
 
