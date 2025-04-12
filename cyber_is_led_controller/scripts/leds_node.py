@@ -20,7 +20,9 @@ def main():
 
     leds_pub = rospy.Publisher(leds_topic, UInt8MultiArray, queue_size=10)
     state_sub=rospy.Subscriber(state_topic, String, callback)
-    #modes.set_mode("FULL_RAINBOW") #tryb testu
+    
+    #modes.set_mode("SIDE_RED_STROBE") #tryb testu
+    
     rate = rospy.Rate(freq)
 
     while not rospy.is_shutdown():

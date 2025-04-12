@@ -12,6 +12,8 @@ class Modes:
         self.s = Side()
         self.b = Back()
         self.base_hue = 0.0
+        self.iteration = 0 #parametr do opozniania migania
+        self.on_off = True #miganie wlacz/wylacz
 
     def rainbow(self):
         animation_speed = 0.005
@@ -20,14 +22,18 @@ class Modes:
         self.base_hue = (self.base_hue + animation_speed) % 1.0
         return data
     
-    
-    # sprawdza pelna tecza i zbiera wartosci z poszczegolnych klas ledow
+    # ustawia wartosc ledow
     def get_leds(self):
-        if self.mode == "FULL_RAINBOW":
+        if self.mode == "FULL_RAINBOW": #sprawdza czy full_rainbow - osobna funkcja
             return self.rainbow()
         else:
-            data = (self.s.set_color(True)+self.f.set_color()+
-                    self.s.set_color(False)+self.b.set_color())
+            if "STROBE" in self.mode: # steruje miganiem
+                if self.iteration == 9:
+                    self.on_off = -self.on_off
+                    self.iteration = 0
+                self.iteration += 1
+            data = (self.s.set_color(True, self.on_off)+self.f.set_color()+ #zbiera wartosci ze wszystkich klas
+                    self.s.set_color(False, self.on_off)+self.b.set_color())
             return data
         
     # odczytuje wywolanie, zapisuje tryb, przekazuje do odpowiedniej klasy ledow
