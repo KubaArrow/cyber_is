@@ -10,7 +10,7 @@ def callback(msg):
     modes.set_mode(msg.data)
     rospy.loginfo(f"[Subscriber] Received message: {msg.data}")
 
-def main(mode):
+def main():
 
     rospy.init_node("leds_controller", anonymous=True)
 
@@ -20,20 +20,17 @@ def main(mode):
 
     leds_pub = rospy.Publisher(leds_topic, UInt8MultiArray, queue_size=10)
     state_sub=rospy.Subscriber(state_topic, String, callback)
-
-
+    #modes.set_mode("FULL_RAINBOW") #tryb testu
     rate = rospy.Rate(freq)
 
     while not rospy.is_shutdown():
         msg = UInt8MultiArray()
-        msg.data = modes.get_leds(mode)
+        msg.data = modes.get_leds()
         leds_pub.publish(msg)
         rate.sleep()
 
 if __name__ == '__main__':
     try:
-        main("NONE")
+        main()
     except rospy.ROSInterruptException:
         pass
-
-# nowy kom
