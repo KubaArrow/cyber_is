@@ -1,3 +1,3 @@
 <launch>
-    <node name="auto_talker" pkg="cyber_is_autonomy_controller" type="talker.py" output="screen"/>
+    <node name="state_machine" pkg="cyber_is_autonomy_controller" type="state_machine.py" output="screen"/>
 </launch>

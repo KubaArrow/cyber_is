@@ -1,0 +1,8 @@
+<node name="search_meta_node" pkg="cyber_is_mission_elements" type="search_meta_node" output="screen">
+    <param name="cmd_vel_topic" value="/cmd_vel"/>
+    <param name="line_detector_topic" value="/line_detector_position"/>
+    <param name="magnet_sensor_topic" value="/magnet_filtered"/>
+    <param name="robot_state_topic" value="/robot_state"/>
+    <param name="base_speed" value="0.25"/>
+    <param name="turn_left" value="true"/> <!-- lub false -->
+</node>

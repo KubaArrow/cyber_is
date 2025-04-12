@@ -1,0 +1,10 @@
+<launch>
+    <node name="cyber_is_map_limitter" pkg="cyber_is_mission_elements" type="map_limiter_node" output="screen">
+        <param name="cmd_vel_topic" value="/cmd_vel"/>
+        <param name="line_detector_topic" value="/line_detector_position"/>
+        <param name="rotate_speed" value="0.3"/>
+        <param name="rotate_left" value="true"/>
+        <param name="wall_origin" value="bottom"/>
+
+    </node>
+</launch>
