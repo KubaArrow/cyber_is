@@ -4,9 +4,13 @@
   <param name="use_sim_time" value="$(arg use_sim_time)" />
 
   <node pkg="move_base" type="move_base" name="move_base" output="screen">
+    <param name="base_global_planner" value="global_planner/GlobalPlanner"/>
+    <param name="base_local_planner" value="teb_local_planner/TebLocalPlannerROS"/>
     <rosparam command="load" file="$(find cyber_is_navigation)/config/global_planner.yaml" />
     <rosparam command="load" file="$(find cyber_is_navigation)/config/teb_local_planner.yaml" />
     <rosparam command="load" file="$(find cyber_is_navigation)/config/costmap_common.yaml" />
+    <rosparam command="load" file="$(find cyber_is_navigation)/config/costmap_common.yaml"  ns="global_costmap" />
+    <rosparam command="load" file="$(find cyber_is_navigation)/config/costmap_common.yaml" ns="local_costmap" />
     <rosparam command="load" file="$(find cyber_is_navigation)/config/global_costmap.yaml" ns="global_costmap" />
     <rosparam command="load" file="$(find cyber_is_navigation)/config/local_costmap.yaml" ns="local_costmap" />
   </node>

@@ -1,4 +1,4 @@
-frequency: 30
+frequency: 50
 sensor_timeout: 0.2
 two_d_mode: true
 transform_time_offset: 0.0
@@ -18,10 +18,10 @@ odom0_config: [true, true, false,
                false, false, true,
                false, false, false]
 odom0_differential: false
-odom0_relative: true
+odom0_relative: false
 
 # Pozycja z Hector SLAM (mapa globalna)
-pose0: /slam_out_pose
+pose0: /poseupdate
 pose0_config: [true, true, false,
                false, false, true,
                false, false, false,

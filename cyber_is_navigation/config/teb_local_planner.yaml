@@ -1,9 +1,9 @@
 TebLocalPlannerROS:
-  odom_topic: /low_level_odom
+  odom_topic: "/odometry/filtered"
   map_frame: map
 
-  max_vel_x: 0.75
-  max_vel_x_backwards: 0.75
+  max_vel_x: 0.30
+  max_vel_x_backwards: 0.30
   max_vel_theta: 0.125
   acc_lim_x: 0.5
   acc_lim_theta: 0.2
@@ -24,8 +24,8 @@ TebLocalPlannerROS:
   global_plan_viapoint_sep: 0.5
 
   # Obstacles
-  min_obstacle_dist: 0.2
-  inflation_dist: 0.4
+  min_obstacle_dist: 0.1
+  inflation_dist: 0.1
   include_costmap_obstacles: true
   costmap_obstacles_behind_robot_dist: 1.0
   obstacle_poses_affected: 30

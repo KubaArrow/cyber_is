@@ -1,7 +1,10 @@
 global_frame: map
-robot_base_frame: base_footprint
+robot_base_frame: odom
+
 update_frequency: 5.0
 publish_frequency: 2.0
+transform_tolerance: 0.5
+
 static_map: false
 rolling_window: true
 width: 4.0
