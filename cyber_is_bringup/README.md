@@ -21,7 +21,7 @@ cd .. && catkin_make
 ```
 
 ```bash
-sudo chmod +x /home/pi/catkin_ws/src/cyber_is_bringup/bash/setup_robot.sh
+sudo chmod +x /home/pi/catkin_ws/src/cyber_is/cyber_is_bringup/bash/setup_robot.sh
 ```
 
 ### 2. **Create service systemd**
@@ -38,18 +38,15 @@ Description=ROS Start Service
 After=network.target
 
 [Service]
-ExecStart=/home/pi/catkin_ws/src/cyber_is_bringup/bash/setup_robot.sh
+ExecStart=/home/pi/catkin_ws/src/cyber_is/cyber_is_bringup/bash/setup_robot.sh
 Restart=on-failure
 User=pi
 Environment=DISPLAY=:0
-Environment=ROS_IP=192.168.10.10
-Environment=ROS_MASTER_URI=http://192.168.10.10:11311
+Environment=ROS_IP=192.168.1.10
+Environment=ROS_MASTER_URI=http://192.168.1.10:11311
 
 [Install]
 WantedBy=multi-user.target
-
-
-
 
 ```
 

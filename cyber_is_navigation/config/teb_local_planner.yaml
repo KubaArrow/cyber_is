@@ -1,6 +1,6 @@
 TebLocalPlannerROS:
-  odom_topic: odom
-  map_frame: odom
+  odom_topic: /low_level_odom
+  map_frame: map
 
   max_vel_x: 0.75
   max_vel_x_backwards: 0.75

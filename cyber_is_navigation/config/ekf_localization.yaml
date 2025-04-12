@@ -11,7 +11,7 @@ base_link_frame: base_link
 world_frame: map
 
 # Odometria niskopoziomowa (wheel odom)
-odom0: /odom
+odom0: /low_level_odom
 odom0_config: [true, true, false,
                false, false, true,
                true, true, false,

@@ -83,10 +83,10 @@ int main(int argc, char *argv[]) {
     nh.param<std::string>("twist_topic", twist_topic, "/cmd_vel");
 
     nh.param<std::string>("odom_topic", odom_topic, "/low_level_odom");
-    nh.param<std::string>("odom_frame", odom_topic, "map");
+    nh.param<std::string>("odom_frame", odom_frame, "map");
 
     nh.param<std::string>("imu_topic", imu_topic, "/imu");
-    nh.param<std::string>("imu_frame", odom_topic, "imu");
+    nh.param<std::string>("imu_frame", imu_frame, "imu");
 
 
     nh.param<std::string>("magnet_topic", magnet_topic, "/magnet");
