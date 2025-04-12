@@ -35,3 +35,5 @@ if __name__ == '__main__':
         main("NONE")
     except rospy.ROSInterruptException:
         pass
+
+# nowy kom
