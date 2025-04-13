@@ -1,4 +1,4 @@
-frequency: 50
+frequency: 30
 sensor_timeout: 0.2
 two_d_mode: true
 transform_time_offset: 0.0
@@ -7,8 +7,9 @@ transform_timeout: 0.1
 # TF frames
 map_frame: map
 odom_frame: odom
-base_link_frame: base_link
-world_frame: map
+base_link_frame: base_footprint
+world_frame: odom        # To jest KLUCZOWE
+
 
 # Odometria niskopoziomowa (wheel odom)
 odom0: /low_level_odom

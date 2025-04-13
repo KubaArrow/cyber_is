@@ -1,0 +1,90 @@
+global_costmap:
+  global_frame: map  # Główna ramka odniesienia (najczęściej globalna mapa)
+  robot_base_frame: base_footprint  # Ramka robota – źródło pozycji robota w mapie
+
+  update_frequency: 10.0  # [Hz] Jak często costmapa się aktualizuje
+  # ↑ Więcej: szybsza reakcja na zmiany, ale większe zużycie CPU
+  # ↓ Mniej: oszczędność zasobów, ale wolniejsza reakcja na przeszkody
+
+  publish_frequency: 10.0  # [Hz] Jak często costmapa publikuje dane (np. do RViz)
+  # ↑ Więcej: płynniejsze wizualizacje, większe obciążenie
+  # ↓ Mniej: opóźnienia w RViz, ale mniejsze zużycie
+
+  transform_tolerance: 0.8  # [s] Maksymalne opóźnienie dozwolone w transformacjach TF
+  # ↑ Więcej: większa tolerancja na lag TF, zmniejsza błędy TF_EXTRAPOLATION
+  # ↓ Mniej: precyzyjne, ale ryzyko błędów przy opóźnionych danych
+
+  static_map: false  # Nie używamy mapy z pliku – mapa budowana na bieżąco
+  rolling_window: true  # Globalna mapa nie porusza się z robotem – obejmuje cały obszar działania
+  resolution: 0.05  # [m/piksel] Rozdzielczość mapy
+  # ↑ Więcej (np. 0.1): mniejsza dokładność, szybsze działanie
+  # ↓ Mniej (np. 0.02): wyższa dokładność, większe obciążenie
+
+  plugins:
+    - { name: obstacle_layer, type: "costmap_2d::ObstacleLayer" }
+    - { name: inflation_layer, type: "costmap_2d::InflationLayer" }
+
+  obstacle_layer:
+    observation_sources: scan  # Źródło danych – lidar
+    scan:
+      data_type: LaserScan
+      topic: scan
+      sensor_frame: base_laser
+      marking: true  # Dodaje przeszkody do mapy
+      clearing: true  # Usuwa przeszkody, które już nie są widoczne
+      obstacle_range: 2.5  # [m] Maksymalny zasięg wykrywania przeszkód
+      # ↑ Więcej: większy zasięg, więcej przeszkód, większe obciążenie
+      # ↓ Mniej: szybsze działanie, ale krótszy "wzrok" robota
+      raytrace_range: 3.0  # [m] Maksymalny zasięg czyszczenia przeszkód
+      # ↑ Więcej: lepsze czyszczenie mapy (np. po przesunięciu krzesła)
+      # ↓ Mniej: przeszkody mogą "zalegać"
+    max_obstacle_height: 0.5  # [m] Maksymalna wysokość detekcji przeszkody
+    min_obstacle_height: 0.05  # [m] Minimalna wysokość obiektu traktowanego jako przeszkoda
+
+  inflation_layer:
+    inflation_radius: 0.4  # [m] Bufor wokół przeszkód
+    # ↑ Więcej: robot trzyma się z dala od przeszkód – bezpieczniej, ale może nie przejść w wąskich miejscach
+    # ↓ Mniej: robot jedzie bliżej przeszkód – lepsze w mieszkaniu, większe ryzyko kolizji
+    cost_scaling_factor: 2.0  # Jak szybko spada koszt w miarę oddalania się od przeszkody
+    # ↑ Więcej: szybki spadek kosztu – mapa bardziej "binarnie" traktuje przeszkody
+    # ↓ Mniej: łagodniejszy spadek, większa "strefa buforowa"
+
+local_costmap:
+  global_frame: odom
+  robot_base_frame: base_footprint
+
+  update_frequency: 10.0
+  publish_frequency: 10.0
+  transform_tolerance: 0.5
+
+  static_map: false
+  rolling_window: true  # Mapa lokalna porusza się wraz z robotem – idealne do dynamicznych sytuacji
+  width: 4.0  # [m] Szerokość lokalnej mapy
+  height: 4.0  # [m] Wysokość lokalnej mapy
+  # ↑ Więcej: lepsze planowanie z wyprzedzeniem, ale większe zużycie CPU i ryzyko zaśmiecenia mapy
+  # ↓ Mniej: szybsze działanie, mniej informacji o otoczeniu
+
+  resolution: 0.05
+
+  plugins:
+    - { name: obstacle_layer, type: "costmap_2d::ObstacleLayer" }
+    - { name: inflation_layer, type: "costmap_2d::InflationLayer" }
+
+  obstacle_layer:
+    observation_sources: scan
+    scan:
+      data_type: LaserScan
+      topic: scan
+      sensor_frame: base_laser
+      marking: true
+      clearing: true
+      obstacle_range: 2.5
+      raytrace_range: 3.0
+    max_obstacle_height: 0.5
+    min_obstacle_height: 0.05
+
+  inflation_layer:
+    inflation_radius: 0.35  # Mniejszy niż w globalnej – pozwala lepiej przeciskać się przez wąskie przestrzenie
+    cost_scaling_factor: 3.0
+    # ↑ Więcej: ciasne buforowanie – robot nie zbliża się do przeszkód nawet o milimetr
+    # ↓ Mniej: łagodniejsze traktowanie przeszkód – może przecisnąć się bliżej
