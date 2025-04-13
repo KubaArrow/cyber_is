@@ -9,7 +9,7 @@ class Side:
     def get_mode(self,mode):
         self.mode = mode
         
-    def set_color(self, reverse, on_off, brightness):
+    def set_color(self, base_hue, reverse, on_off, brightness):
         if self.mode == "SIDE_BLUE":
             return self.side_blue()
         elif self.mode == "SIDE_BLUE_STROBE":
@@ -29,7 +29,7 @@ class Side:
         elif self.mode == "SIDE_GREEN_BREATH":
             return self.side_green_breath(brightness)
         elif self.mode == "SIDE_RAINBOW":
-            return self.side_rainbow(reverse)
+            return self.side_rainbow(base_hue,reverse)
         else:
             return self.side_off()
 
@@ -81,6 +81,32 @@ class Side:
     def side_off(self):
         data = [0,0,0,0]
         return (data*self.leds_count)
+    
+    def side_rainbow(self,base_hue,reverse):
+        data = []
+        if reverse == True:
+            for i in range(self.leds_count):
+                hue = (base_hue + ((i)/10)) % 1.0
+                # Konwersja z HSV (pełne nasycenie i jasność) do RGB
+                r, g, b = hsv_to_rgb(hue, 1.0, 1.0)
+                # Przeliczenie wartości do zakresu 0-255
+                r_int = int(r * 255)
+                g_int = int(g * 255)
+                b_int = int(b * 255)
+                a_int = 255  # pełna przezroczystość
+                data.extend([r_int, g_int, b_int, a_int])
+        else:
+            for i in range(self.leds_count):
+                hue = (base_hue + ((i+5)/10)) % 1.0
+                # Konwersja z HSV (pełne nasycenie i jasność) do RGB
+                r, g, b = hsv_to_rgb(hue, 1.0, 1.0)
+                # Przeliczenie wartości do zakresu 0-255
+                r_int = int(r * 255)
+                g_int = int(g * 255)
+                b_int = int(b * 255)
+                a_int = 255  # pełna przezroczystość
+                data.extend([r_int, g_int, b_int, a_int])
+        return data
     
     def full_rainbow(self,base_hue,reverse):
         data = []

@@ -16,12 +16,12 @@ class Modes:
         self.on_off = True #miganie wlacz/wylacz
         self.brightness = 178
         self.up_down = True
+        self.animation_speed = 0.005
 
     def rainbow(self):
-        animation_speed = 0.005
         data = (self.s.full_rainbow(self.base_hue,True)+self.f.full_rainbow(self.base_hue)+
                 self.s.full_rainbow(self.base_hue,False)+self.b.full_rainbow(self.base_hue))
-        self.base_hue = (self.base_hue + animation_speed) % 1.0
+        self.base_hue = (self.base_hue + self.animation_speed) % 1.0
         return data
     
     # ustawia wartosc ledow
@@ -45,8 +45,10 @@ class Modes:
                     self.brightness +=1
                 else:
                     self.brightness -=1
-            data = (self.s.set_color(True, self.on_off,self.brightness)+self.f.set_color()+ #zbiera wartosci ze wszystkich klas
-                    self.s.set_color(False, self.on_off,self.brightness)+self.b.set_color())
+            data = (self.s.set_color(self.base_hue,True,self.on_off,self.brightness)+self.f.set_color()+ #zbiera wartosci ze wszystkich klas
+                    self.s.set_color(self.base_hue,False,self.on_off,self.brightness)+self.b.set_color())
+            if self.mode == "SIDE_RAINBOW":
+                self.base_hue = (self.base_hue + self.animation_speed) % 1.0
             return data
         
     # odczytuje wywolanie, zapisuje tryb, przekazuje do odpowiedniej klasy ledow
