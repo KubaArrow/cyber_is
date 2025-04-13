@@ -56,8 +56,8 @@ void poseCallback(const geometry_msgs::PoseStamped::ConstPtr &msg) {
     PoseMsg_t packet = {0};
     packet.msgID = POSE_MSG;
 
-    packet.x = msg->position.x;
-    packet.y = msg->position.y;
+    packet.x = msg->pose.position.x;
+    packet.y = msg->pose.position.y;
     const auto q = msg->orientation;
     double siny_cosp = 2.0 * (q.w * q.z + q.x * q.y);
     double cosy_cosp = 1.0 - 2.0 * (q.y * q.y + q.z * q.z);
