@@ -19,7 +19,8 @@ typedef enum
 	MAGNET_MSG,
 	ODOMETRY_MSG,
 	LED_MSG,
-	DIAG_MSG
+	DIAG_MSG,
+ 	POSE_MSG
 }msgID_t;
 #pragma pack(1)
 
@@ -115,6 +116,14 @@ typedef struct
 	uint8_t msgLen;
 	uint8_t msg[100];
 }DiagMsg_t;
+
+typedef struct
+{
+	uint8_t msgID;
+	double x;
+	double y;
+	double yaw;
+}PoseMsg_t;
 #pragma pack()
 
 

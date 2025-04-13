@@ -5,6 +5,7 @@
 #include "ros/ros.h"
 #include <string>
 #include "geometry_msgs/Twist.h"
+#include "geometry_msgs/Pose.h"
 #include "std_msgs/Float64MultiArray.h"
 #include "std_msgs/UInt16MultiArray.h"
 #include "std_msgs/UInt8MultiArray.h"
@@ -12,6 +13,7 @@
 #include "sensor_msgs/BatteryState.h"
 #include "nav_msgs/Odometry.h"
 #include "diagnostic_msgs/DiagnosticStatus.h"
+#include <cmath>
 
 SerialSlip *slip = nullptr;
 
@@ -33,7 +35,7 @@ void cmdVelCallback(const geometry_msgs::Twist::ConstPtr &msg) {
     }
 }
 
-void ledsCallback(const std_msgs::UInt8MultiArray::ConstPtr &msg) {
+void ledsCallback(const std_msgs::Float64MultiArray::ConstPtr &msg) {
     LEDMsg_t packet = {0};
     packet.msgID = LED_MSG;
 
@@ -44,6 +46,23 @@ void ledsCallback(const std_msgs::UInt8MultiArray::ConstPtr &msg) {
         packet.leds[i].B = msg->data[base + 2];
         packet.leds[i].A = msg->data[base + 3];
     }
+    int result = serial_slip_write(slip, reinterpret_cast<uint8_t *>(&packet), sizeof(packet));
+    if (result < 0) {
+        ROS_ERROR("serial_slip_write failed");
+    }
+}
+
+void poseCallback(const geometry_msgs::Pose::ConstPtr &msg) {
+    PoseMsg_t packet = {0};
+    packet.msgID = POSE_MSG;
+
+    packet.x = msg->position.x;
+    packet.y = msg->position.y;
+    const auto q = msg->orientation;
+    double siny_cosp = 2.0 * (q.w * q.z + q.x * q.y);
+    double cosy_cosp = 1.0 - 2.0 * (q.y * q.y + q.z * q.z);
+    packet.yaw = std::atan2(siny_cosp, cosy_cosp);
+
     int result = serial_slip_write(slip, reinterpret_cast<uint8_t *>(&packet), sizeof(packet));
     if (result < 0) {
         ROS_ERROR("serial_slip_write failed");
