@@ -14,6 +14,8 @@ class Modes:
         self.base_hue = 0.0
         self.iteration = 0 #parametr do opozniania migania
         self.on_off = True #miganie wlacz/wylacz
+        self.brightness = 178
+        self.up_down = True
 
     def rainbow(self):
         animation_speed = 0.005
@@ -32,8 +34,19 @@ class Modes:
                     self.on_off = -self.on_off
                     self.iteration = 0
                 self.iteration += 1
-            data = (self.s.set_color(True, self.on_off)+self.f.set_color()+ #zbiera wartosci ze wszystkich klas
-                    self.s.set_color(False, self.on_off)+self.b.set_color())
+            elif "BREATH" in self.mode: # steruje zmianami jasnosci
+                if self.up_down == True and self.brightness < 255:
+                    self.brightness += 1
+                elif self.brightness == 255:
+                    self.up_down = False
+                    self.brightness -=1
+                elif self.brightness == 0:
+                    self.up_down = True
+                    self.brightness +=1
+                else:
+                    self.brightness -=1
+            data = (self.s.set_color(True, self.on_off,self.brightness)+self.f.set_color()+ #zbiera wartosci ze wszystkich klas
+                    self.s.set_color(False, self.on_off,self.brightness)+self.b.set_color())
             return data
         
     # odczytuje wywolanie, zapisuje tryb, przekazuje do odpowiedniej klasy ledow

@@ -9,25 +9,25 @@ class Side:
     def get_mode(self,mode):
         self.mode = mode
         
-    def set_color(self, reverse, on_off):
+    def set_color(self, reverse, on_off, brightness):
         if self.mode == "SIDE_BLUE":
             return self.side_blue()
         elif self.mode == "SIDE_BLUE_STROBE":
             return self.side_blue_strobe(on_off)
         elif self.mode == "SIDE_BLUE_BREATH":
-            return self.side_blue_breath(reverse)
+            return self.side_blue_breath(brightness)
         elif self.mode == "SIDE_RED":
             return self.side_red()
         elif self.mode == "SIDE_RED_STROBE":
             return self.side_red_strobe(on_off)
         elif self.mode == "SIDE_RED_BREATH":
-            return self.side_red_breath(reverse)
+            return self.side_red_breath(brightness)
         elif self.mode == "SIDE_GREEN":
             return self.side_green()
         elif self.mode == "SIDE_GREEN_STROBE":
             return self.side_green_strobe(on_off)
         elif self.mode == "SIDE_GREEN_BREATH":
-            return self.side_green_breath(reverse)
+            return self.side_green_breath(brightness)
         elif self.mode == "SIDE_RAINBOW":
             return self.side_rainbow(reverse)
         else:
@@ -44,6 +44,10 @@ class Side:
             data = [65,105,225,0]
         return (data*self.leds_count) 
     
+    def side_blue_breath(self, brightness):
+        data = [65,105,225,brightness]
+        return (data*self.leds_count) 
+    
     def side_red(self):
         data = [255,0,0,178]
         return (data*self.leds_count) 
@@ -53,6 +57,10 @@ class Side:
             data = [255,0,0,178]
         else:
             data = [255,0,0,0]
+        return (data*self.leds_count) 
+    
+    def side_red_breath(self, brightness):
+        data = [255,0,0,brightness]
         return (data*self.leds_count) 
     
     def side_green(self):
@@ -65,6 +73,10 @@ class Side:
         else:
             data = [57,255,20,0]
         return (data*self.leds_count)
+    
+    def side_green_breath(self, brightness):
+        data = [57,255,20,brightness]
+        return (data*self.leds_count) 
 
     def side_off(self):
         data = [0,0,0,0]
