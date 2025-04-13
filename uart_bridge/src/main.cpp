@@ -5,7 +5,7 @@
 #include "ros/ros.h"
 #include <string>
 #include "geometry_msgs/Twist.h"
-#include "geometry_msgs/Pose.h"
+#include "geometry_msgs/PoseStamped.h"
 #include "std_msgs/Float64MultiArray.h"
 #include "std_msgs/UInt16MultiArray.h"
 #include "std_msgs/UInt8MultiArray.h"
@@ -52,7 +52,7 @@ void ledsCallback(const std_msgs::Float64MultiArray::ConstPtr &msg) {
     }
 }
 
-void poseCallback(const geometry_msgs::Pose::ConstPtr &msg) {
+void poseCallback(const geometry_msgs::PoseStamped::ConstPtr &msg) {
     PoseMsg_t packet = {0};
     packet.msgID = POSE_MSG;
 
