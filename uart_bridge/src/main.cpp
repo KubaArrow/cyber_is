@@ -93,7 +93,7 @@ int main(int argc, char *argv[]) {
 
     std::string uart_port;
     int frequency;
-    std::string twist_topic, odom_topic, imu_topic, magnet_topic, line_detector_topic, leds_topic, battery_topic, status_topic;
+    std::string twist_topic, pose_topic, odom_topic, imu_topic, magnet_topic, line_detector_topic, leds_topic, battery_topic, status_topic;
     std::string odom_frame, imu_frame;
 
     nh.param<std::string>("uart_port", uart_port, "/dev/ttyACM0");
@@ -101,7 +101,7 @@ int main(int argc, char *argv[]) {
 
     nh.param<std::string>("twist_topic", twist_topic, "/cmd_vel");
 
-    nh.param<std::string>("pose_topic", twist_topic, "/slam_out_pose");
+    nh.param<std::string>("pose_topic", pose_topic, "/slam_out_pose");
 
     nh.param<std::string>("odom_topic", odom_topic, "/low_level_odom");
     nh.param<std::string>("odom_frame", odom_frame, "map");
