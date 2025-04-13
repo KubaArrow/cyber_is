@@ -2,8 +2,9 @@ from colorsys import hsv_to_rgb
 
 class Side:
     
-    def __init__(self):
-        self.leds_count = 5
+    def __init__(self,leds,all_leds):
+        self.leds_count = leds
+        self.all_leds = all_leds
         self.mode = ""
 
     def get_mode(self,mode):
@@ -86,7 +87,7 @@ class Side:
         data = []
         if reverse == True:
             for i in range(self.leds_count):
-                hue = (base_hue + ((i)/10)) % 1.0
+                hue = (base_hue + ((i)/(2*self.leds_count))) % 1.0
                 # Konwersja z HSV (pełne nasycenie i jasność) do RGB
                 r, g, b = hsv_to_rgb(hue, 1.0, 1.0)
                 # Przeliczenie wartości do zakresu 0-255
@@ -97,7 +98,7 @@ class Side:
                 data.extend([r_int, g_int, b_int, a_int])
         else:
             for i in range(self.leds_count):
-                hue = (base_hue + ((i+5)/10)) % 1.0
+                hue = (base_hue + ((i+self.leds_count)/(2*self.leds_count))) % 1.0
                 # Konwersja z HSV (pełne nasycenie i jasność) do RGB
                 r, g, b = hsv_to_rgb(hue, 1.0, 1.0)
                 # Przeliczenie wartości do zakresu 0-255
@@ -108,11 +109,12 @@ class Side:
                 data.extend([r_int, g_int, b_int, a_int])
         return data
     
-    def full_rainbow(self,base_hue,reverse):
+    def full_rainbow(self,base_hue,reverse,front_leds):
         data = []
+        leds_before = self.leds_count+front_leds
         if reverse == True:
             for i in range(self.leds_count):
-                hue = (base_hue + ((i)/18)) % 1.0
+                hue = (base_hue + ((i)/self.all_leds)) % 1.0
                 # Konwersja z HSV (pełne nasycenie i jasność) do RGB
                 r, g, b = hsv_to_rgb(hue, 1.0, 1.0)
                 # Przeliczenie wartości do zakresu 0-255
@@ -123,7 +125,7 @@ class Side:
                 data.extend([r_int, g_int, b_int, a_int])
         else:
             for i in range(self.leds_count):
-                hue = (base_hue + ((i+9)/18)) % 1.0
+                hue = (base_hue + ((i+leds_before)/self.all_leds)) % 1.0
                 # Konwersja z HSV (pełne nasycenie i jasność) do RGB
                 r, g, b = hsv_to_rgb(hue, 1.0, 1.0)
                 # Przeliczenie wartości do zakresu 0-255

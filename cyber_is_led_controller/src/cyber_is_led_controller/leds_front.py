@@ -2,8 +2,9 @@ from colorsys import hsv_to_rgb
 
 class Front:
     
-    def __init__(self):
-        self.leds_count = 4
+    def __init__(self, leds, all_leds):
+        self.leds_count = leds
+        self.all_leds = all_leds
         self.mode = ""
 
     def get_mode(self,mode):
@@ -38,10 +39,10 @@ class Front:
         data = [255,255,255,0]
         return (data*self.leds_count)
     
-    def full_rainbow(self,base_hue):
+    def full_rainbow(self,base_hue,leds_before):
         data = []
         for i in range(self.leds_count):
-            hue = (base_hue + ((i+5)/18)) % 1.0
+            hue = (base_hue + ((i+leds_before)/self.all_leds)) % 1.0
             # Konwersja z HSV (pełne nasycenie i jasność) do RGB
             r, g, b = hsv_to_rgb(hue, 1.0, 1.0)
             # Przeliczenie wartości do zakresu 0-255

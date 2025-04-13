@@ -5,22 +5,24 @@ import rospy
 
 class Modes:
     def __init__(self):
-        side_leds = rospy.get_param("side_leds", 5)
-        front_leds = rospy.get_param("front_leds", 4)
-        back_leds = rospy.get_param("back_leds", 4)
-        self.f = Front()
-        self.s = Side()
-        self.b = Back()
-        self.base_hue = 0.0
+        self.side_leds = rospy.get_param("side_leds", 5)
+        self.front_leds = rospy.get_param("front_leds", 4)
+        self.back_leds = rospy.get_param("back_leds", 4)
+        all_leds = self.side_leds*2 + self.front_leds + self.back_leds
+        self.f = Front(self.front_leds, all_leds)
+        self.s = Side(self.side_leds, all_leds)
+        self.b = Back(self.back_leds, all_leds)
         self.iteration = 0 #parametr do opozniania migania
         self.on_off = True #miganie wlacz/wylacz
         self.brightness = 178
         self.up_down = True
         self.animation_speed = 0.005
+        self.base_hue = 0.0
 
     def rainbow(self):
-        data = (self.s.full_rainbow(self.base_hue,True)+self.f.full_rainbow(self.base_hue)+
-                self.s.full_rainbow(self.base_hue,False)+self.b.full_rainbow(self.base_hue))
+        
+        data = (self.s.full_rainbow(self.base_hue,True,self.front_leds)+self.f.full_rainbow(self.base_hue,self.side_leds)+
+                self.s.full_rainbow(self.base_hue,False,self.front_leds)+self.b.full_rainbow(self.base_hue))
         self.base_hue = (self.base_hue + self.animation_speed) % 1.0
         return data
     
