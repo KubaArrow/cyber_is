@@ -4,6 +4,7 @@
         <param name="frequency" value="200"/>
 
         <param name="twist_topic" value="/cmd_vel" />
+        <param name="pose_topic" value="/slam_out_pose" />
 
         <param name="odom_topic" value="/low_level_odom" />
         <param name="odom_frame" value="map" />

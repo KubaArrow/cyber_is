@@ -101,6 +101,8 @@ int main(int argc, char *argv[]) {
 
     nh.param<std::string>("twist_topic", twist_topic, "/cmd_vel");
 
+    nh.param<std::string>("pose_topic", twist_topic, "/slam_out_pose");
+
     nh.param<std::string>("odom_topic", odom_topic, "/low_level_odom");
     nh.param<std::string>("odom_frame", odom_frame, "map");
 
@@ -118,6 +120,7 @@ int main(int argc, char *argv[]) {
 
     ros::Subscriber sub_cmd_vel = nh.subscribe(twist_topic, 10, cmdVelCallback);
     ros::Subscriber sub_lights = nh.subscribe(leds_topic, 10, ledsCallback);
+    ros::Subscriber sub_pose = nh.subscribe(pose_topic, 10, poseCallback);
 
     ros::Publisher odom_publisher = nh.advertise<nav_msgs::Odometry>(odom_topic, 10);
     ros::Publisher imu_publisher = nh.advertise<sensor_msgs::Imu>(imu_topic, 10);
