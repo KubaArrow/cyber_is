@@ -54,7 +54,7 @@ class AutonomyMode:
         self.monitor_navigation_thread.daemon = True
         self.monitor_navigation_thread.start()
         self.filters_process = None
-        self.leds_publisher.publish("SIDE_GREEN")
+        self.leds_publisher.publish("SIDE_BLUE")
         self.state_publisher.publish("AUTONOMY_READY")
         rospy.loginfo("Prepared mission")
 
@@ -75,7 +75,7 @@ class AutonomyMode:
         self.cmd_publisher.publish(Twist())
         self.state_publisher.publish("ROBOT_STOPPED")
         self.state_publisher.publish("WAITING_FOR_START")
-        self.leds_publisher.publish("SIDE_GREEN_BREATH")
+        self.leds_publisher.publish("SIDE_BLUE_BREATH")
 
     def start_mission(self):
         rospy.loginfo("Starting mission...")
