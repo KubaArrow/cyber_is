@@ -5,9 +5,9 @@ import rospy
 
 class Modes:
     def __init__(self):
-        self.side_leds = rospy.get_param("side_leds", 4)
-        self.front_leds = rospy.get_param("front_leds", 4)
-        self.back_leds = rospy.get_param("back_leds", 0)
+        self.side_leds = rospy.get_param("/side_leds", 4)
+        self.front_leds = rospy.get_param("/front_leds", 4)
+        self.back_leds = rospy.get_param("/back_leds", 0)
         all_leds = self.side_leds*2 + self.front_leds + self.back_leds
         self.f = Front(self.front_leds, all_leds)
         self.s = Side(self.side_leds, all_leds)
