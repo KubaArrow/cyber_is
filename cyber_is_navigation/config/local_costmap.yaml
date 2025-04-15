@@ -1,8 +1,8 @@
 
 global_frame: odom
 robot_base_frame: base_footprint
-update_frequency: 10.0
-publish_frequency: 10.0
+update_frequency: 6.0
+publish_frequency: 6.0
 transform_tolerance: 0.5
 inflation_radius: 0.09
 cost_scaling_factor: 5.0
@@ -10,7 +10,7 @@ static_map: false
 rolling_window: true
 width: 4.0
 height: 4.0
-resolution: 0.01
+resolution: 0.02
 
 
 #
