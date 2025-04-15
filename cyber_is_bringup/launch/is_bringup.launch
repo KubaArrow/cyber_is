@@ -1,5 +1,4 @@
 <launch>
-    <include file="$(find cyber_is_description)/launch/description.launch"/>
     <include file="$(find rosbridge_server)/launch/rosbridge_websocket.launch"/>
     <include file="$(find ldlidar_sl_ros)/launch/ld14p.launch"/>
     <include file="$(find uart_bridge)/launch/start_bridge.launch"/>
