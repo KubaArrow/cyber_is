@@ -1,6 +1,6 @@
 shutdown_costmaps: false         # Nie wyłączamy costmap w trybie bezczynności – robot cały czas "widzi" otoczenie
 
-controller_frequency: 6.0       # Częstotliwość sterowania – wystarczająco płynnie, bez dużego obciążenia CPU
+controller_frequency: 12.0       # Częstotliwość sterowania – wystarczająco płynnie, bez dużego obciążenia CPU
 planner_frequency: 6.0           # Globalny plan odświeżany raz na sekundę – idealne do wolnych, ciasnych przestrzeni
 
 #transform_tolerance: 0.8         # Tolerancja TF – większa, aby unikać błędów przy drobnych opóźnieniach
