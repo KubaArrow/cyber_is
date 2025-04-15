@@ -2,11 +2,9 @@
 
 import rospy
 from std_msgs.msg import String
-import subprocess
 
-from cyber_is_supervisor.manual_mode import ManualMode
-
-from cyber_is_supervisor.autonomy_mode import AutonomyMode
+from cyber_is_supervisor.AutonomyMode import AutonomyMode
+from cyber_is_supervisor.ManualMode import ManualMode
 
 
 class ModeSupervisor:
