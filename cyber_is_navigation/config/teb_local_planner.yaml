@@ -1,9 +1,9 @@
 TebLocalPlannerROS:
   odom_topic: "/odometry/filtered"
 
-  max_vel_x: 0.30
+  max_vel_x: 0.20
   max_vel_x_backwards: 0.20
-  max_vel_theta: 0.125
+  max_vel_theta: 1.57
   acc_lim_x: 0.5
   acc_lim_theta: 0.2
 
@@ -12,19 +12,19 @@ TebLocalPlannerROS:
     radius: 0.2
 
   xy_goal_tolerance: 0.2
-  yaw_goal_tolerance: 0.3
-  free_goal_vel: false
+  yaw_goal_tolerance: 0.1
+  free_goal_vel: true
 
   teb_autosize: true
   dt_ref: 0.2
   dt_hysteresis: 0.03
-  max_global_plan_lookahead_dist: 0.4
+  max_global_plan_lookahead_dist: 1.0
   global_plan_viapoint_sep: 0.5
   via_points_ordered: true
 
 
-  min_obstacle_dist: 0.25
-  inflation_dist: 0.5
+  min_obstacle_dist: 0.05
+  inflation_dist: 0.05
   include_costmap_obstacles: true
   costmap_obstacles_behind_robot_dist: 1.0
   obstacle_poses_affected: 30

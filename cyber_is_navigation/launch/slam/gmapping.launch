@@ -1,0 +1,35 @@
+<launch>
+    <node pkg="tf" type="static_transform_publisher" name="map_to_odom_tf"
+          args="0 0 0 0 0 0 map odom 100" />
+
+
+    <!-- Start gmapping -->
+    <node pkg="gmapping" type="slam_gmapping" name="slam_gmapping" output="screen">
+        <!-- Topic z lasera -->
+        <param name="base_frame" value="base_footprint"/>
+        <param name="odom_frame" value="odom"/>
+        <param name="particles" value="30" /> <!-- mniej cząstek = stabilniej -->
+        <param name="linearUpdate" value="0.2" /> <!-- korekta co 20cm -->
+        <param name="angularUpdate" value="0.1" /> <!-- korekta co 0.1 rad (ok. 5.7°) -->
+        <param name="resampleThreshold" value="0.5" /> <!-- jak bardzo cząstki mogą się rozjechać przed korekcją -->
+        <param name="map_update_interval" value="2.0" /> <!-- co ile sekund aktualizować mapę -->
+        <param name="temporalUpdate" value="1.0" /> <!-- korekta co sekunda (nie za często!) -->
+        <param name="xmin" value="-10.0" />
+        <param name="xmax" value="10.0" />
+        <param name="ymin" value="-10.0" />
+        <param name="ymax" value="10.0" />
+        <param name="delta" value="0.05" /> <!-- rozdzielczość mapy 5cm -->
+        <param name="maxUrange" value="6.0" /> <!-- maksymalny zasięg lasera -->
+
+        <remap from="scan" to="/scan"/> <!-- jeśli laser publikuje na innym topiku -->
+    </node>
+
+<!--    &lt;!&ndash; Start tf broadcaster odometrii &ndash;&gt;-->
+<!--    <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher">-->
+<!--        <param name="publish_frequency" type="double" value="50.0"/>-->
+<!--        <rosparam command="load" file="$(find your_robot_description_package)/urdf/your_robot.urdf"/>-->
+<!--    </node>-->
+
+<!--    &lt;!&ndash; Joint state publisher - jeśli masz URDF &ndash;&gt;-->
+<!--    <node name="joint_state_publisher" pkg="joint_state_publisher" type="joint_state_publisher"/>-->
+</launch>

@@ -6,3 +6,4 @@ cyber_is_manual_controller/mjpg-streamer/
 /cyber_is_filters/cmake-build-debug/
 /cyber_is_led_controller/.idea/
 /cyber_is_autonomy_controller/.idea/
+/cyber_is_supervisor/.idea/

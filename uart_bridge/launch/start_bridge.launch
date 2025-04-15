@@ -7,7 +7,7 @@
         <param name="pose_topic" value="/slam_out_pose" />
 
         <param name="odom_topic" value="/low_level_odom" />
-        <param name="odom_frame" value="map" />
+        <param name="odom_frame" value="odom" />
 
         <param name="imu_topic" value="/imu" />
         <param name="imu_frame" value="imu" />

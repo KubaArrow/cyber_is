@@ -1,13 +1,13 @@
 obstacle_range: 2.5
 raytrace_range: 3.0
-robot_radius: 0.1
+robot_radius: 0.08
 
 
-inflation_radius: 0.05
-cost_scaling_factor: 1.0
+inflation_radius: 0.4
+cost_scaling_factor: 5.0
 
 transform_tolerance: 1.0  # wcześniej miałeś 0.5 lub 0.8
-
+resolution: 0.01
 map_type: costmap
 obstacle_layer:
   observation_sources: scan

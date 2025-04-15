@@ -9,7 +9,7 @@
 
 
 
-    <!--    <param name="base_local_planner" value="teb_local_planner/TebLocalPlannerROS"/>-->
+<!--        <param name="base_local_planner" value="teb_local_planner/TebLocalPlannerROS"/>-->
 <!--    <rosparam command="load" file="$(find cyber_is_navigation)/config/teb_local_planner.yaml" />-->
 
     <param name="base_local_planner" value="dwa_local_planner/DWAPlannerROS"/>
