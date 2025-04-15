@@ -35,7 +35,7 @@ void cmdVelCallback(const geometry_msgs::Twist::ConstPtr &msg) {
     }
 }
 
-void ledsCallback(const std_msgs::Float64MultiArray::ConstPtr &msg) {
+void ledsCallback(const std_msgs::UInt8MultiArray::ConstPtr &msg) {
     LEDMsg_t packet = {0};
     packet.msgID = LED_MSG;
 
