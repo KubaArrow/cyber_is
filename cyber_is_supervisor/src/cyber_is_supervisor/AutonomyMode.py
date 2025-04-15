@@ -13,6 +13,7 @@ class AutonomyMode:
         self.process = None
         self.robot_state_sub = rospy.Subscriber("/robot_state", String, self.callback)
         self.state_publisher = rospy.Publisher("/robot_state", String, queue_size=10)
+        self.leds_publisher = rospy.Publisher("/leds_mode", String, queue_size=10)
         self.cmd_publisher = rospy.Publisher("/cmd_vel", Twist, queue_size=10)
         self.running = False
         self.navigation_process = None
@@ -46,11 +47,14 @@ class AutonomyMode:
         self.state_publisher.publish("STOP_MANUAL_MODE")
 
     def prepare_mission(self):
+        self.leds_publisher.publish("FRONT_MIN")
+        self.leds_publisher.publish("SIDE_BLUE_STROBE")
         self.navigation_process = subprocess.Popen(['roslaunch', 'cyber_is_navigation', 'start_navigation.launch'])
         self.monitor_navigation_thread = threading.Thread(target=self.monitor_navigation_process)
         self.monitor_navigation_thread.daemon = True
         self.monitor_navigation_thread.start()
         self.filters_process = None
+        self.leds_publisher.publish("SIDE_GREEN")
         self.state_publisher.publish("AUTONOMY_READY")
         rospy.loginfo("Prepared mission")
 
@@ -64,12 +68,14 @@ class AutonomyMode:
         rospy.loginfo("Navigation destroyed...")
 
     def abort_mission(self):
+        self.leds_publisher.publish("SIDE_RED_STROBE")
         self.state_publisher.publish("MISSION_FAILED")
         rospy.loginfo("Aborting mission...")
         self.destroy_mission()
         self.cmd_publisher.publish(Twist())
         self.state_publisher.publish("ROBOT_STOPPED")
         self.state_publisher.publish("WAITING_FOR_START")
+        self.leds_publisher.publish("SIDE_GREEN_BREATH")
 
     def start_mission(self):
         rospy.loginfo("Starting mission...")

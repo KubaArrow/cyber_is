@@ -18,6 +18,7 @@ class Modes:
         self.up_down = True
         self.animation_speed = 0.005
         self.base_hue = 0.0
+        self.mode=""
 
     def rainbow(self):
         

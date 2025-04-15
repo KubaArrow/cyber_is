@@ -9,6 +9,7 @@ class ManualMode:
     def __init__(self):
         self.process = None
         self.publisher = rospy.Publisher("/robot_state", String, queue_size=10)
+        self.leds_publisher = rospy.Publisher("/leds_mode", String, queue_size=10)
         self.monitor_thread = None
         self.running = False
         self.shutdown_requested = False  # <-- dodajemy flagę
@@ -21,6 +22,9 @@ class ManualMode:
                 ['roslaunch', 'cyber_is_manual_controller', 'start_manual_mode.launch']
             )
             self.publisher.publish("START_MANUAL_MODE")
+            self.leds_publisher.publish("FRONT_HALF")
+            self.leds_publisher.publish("SIDE_GREEN")
+            self.leds_publisher.publish("BACK_OFF")
 
             # Start monitoring in a background thread
             self.running = True

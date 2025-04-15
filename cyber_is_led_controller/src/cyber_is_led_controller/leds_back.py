@@ -5,7 +5,7 @@ class Back:
     def __init__(self,leds,all_leds):
         self.leds_count = leds
         self.all_leds = all_leds
-        self.mode = ""
+        self.mode = "BACK_HALF"
 
     def get_mode(self,mode):
         self.mode = mode

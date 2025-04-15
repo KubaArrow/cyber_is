@@ -16,10 +16,10 @@ def main():
 
     leds_topic = rospy.get_param("leds_topic", "/leds")
     freq = rospy.get_param("frequency", 30)
-    state_topic = rospy.get_param("leds_topic", "/robot_state")
+    state_topic = rospy.get_param("leds_topic", "/leds_mode")
 
     leds_pub = rospy.Publisher(leds_topic, UInt8MultiArray, queue_size=10)
-    state_sub=rospy.Subscriber(state_topic, String, callback)
+    leds_mode_sub=rospy.Subscriber(state_topic, String, callback)
     
     rate = rospy.Rate(freq)
 

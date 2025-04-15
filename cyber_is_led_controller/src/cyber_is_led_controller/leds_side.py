@@ -5,7 +5,7 @@ class Side:
     def __init__(self,leds,all_leds):
         self.leds_count = leds
         self.all_leds = all_leds
-        self.mode = ""
+        self.mode = "SIDE_GREEN"
 
     def get_mode(self,mode):
         self.mode = mode
