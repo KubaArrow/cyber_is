@@ -54,6 +54,7 @@ class AutonomyMode:
         self.monitor_navigation_thread.daemon = True
         self.monitor_navigation_thread.start()
         self.filters_process = None
+        rospy.sleep(5)
         self.leds_publisher.publish("SIDE_BLUE")
         self.state_publisher.publish("AUTONOMY_READY")
         rospy.loginfo("Prepared mission")

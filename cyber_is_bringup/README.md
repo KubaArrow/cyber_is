@@ -26,40 +26,64 @@ sudo chmod +x /home/pi/catkin_ws/src/cyber_is/cyber_is_bringup/bash/setup_robot.
 
 ### 2. **Create service systemd**
 
+
+```bash
+sudo nano /etc/systemd/system/roscore.service
+```
+```ini
+[Unit]
+Description=ROS Core
+After=network.target
+Requires=network.target
+
+[Service]
+ExecStart=/opt/ros/noetic/bin/roscore
+Restart=on-failure
+User=pi
+Environment=DISPLAY=:0
+Environment=ROS_IP=192.168.1.26
+Environment=ROS_MASTER_URI=http://192.168.1.26:11311
+
+[Install]
+WantedBy=multi-user.target
+
+
+
+```
+
 ```bash
 sudo nano /etc/systemd/system/ros_start.service
 ```
 
-Past content:
-
 ```ini
 [Unit]
-Description=ROS Start Service
-After=network.target
+Description=Start ROS Packages After roscore
+After=roscore.service
+Requires=roscore.service
 
 [Service]
 ExecStart=/home/pi/catkin_ws/src/cyber_is/cyber_is_bringup/bash/setup_robot.sh
 Restart=on-failure
 User=pi
 Environment=DISPLAY=:0
-Environment=ROS_IP=192.168.1.10
-Environment=ROS_MASTER_URI=http://192.168.1.10:11311
+Environment=ROS_IP=192.168.1.26
+Environment=ROS_MASTER_URI=http://192.168.1.26:11311
 
 [Install]
 WantedBy=multi-user.target
-
 ```
-
-
----
 
 ### 3. **Start service**
 
 ```bash
 sudo systemctl daemon-reexec
 sudo systemctl daemon-reload
+
+sudo systemctl enable roscore.service
 sudo systemctl enable ros_start.service
-sudo systemctl start ros_start.service
+
+sudo systemctl start roscore.service
+
 ```
 
 Możesz sprawdzić status:
