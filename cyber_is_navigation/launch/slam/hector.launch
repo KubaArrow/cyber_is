@@ -3,7 +3,7 @@
   <arg name="scan_topic" default="scan"/>
   <arg name="map_size" default="300"/>
   <node pkg="tf" type="static_transform_publisher" name="map_to_odom_tf"
-        args="0 0 0 0 0 0.9999997 0.0007963 map odom 100" />
+        args="0 0 0 0 0 0 map odom 100" />
 
 
   <!-- Hector mapping node -->
@@ -12,7 +12,7 @@
     <!-- Frames configuration -->
     <param name="map_frame"  value="map" />
     <param name="odom_frame" value="odom" />
-    <param name="base_frame" value="base_link" />
+    <param name="base_frame" value="base_footprint" />
 
     <!-- Transformacje TF -->
     <param name="use_tf_scan_transformation"  value="true"/>

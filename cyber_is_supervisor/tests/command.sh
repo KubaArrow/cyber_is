@@ -8,3 +8,5 @@ rostopic pub /robot_mode std_msgs/String "data: 'AUTO'" --once
 rostopic pub /robot_mode std_msgs/String "data: 'MANUAL'" --once
 
 
+sudo systemctl restart ros_start.service
+
