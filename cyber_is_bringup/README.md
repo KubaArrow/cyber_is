@@ -98,4 +98,7 @@ rosrun tf static_transform_publisher 0 0 0 0 0 0.9999997 0.0007963 odom odom_rot
 ```bash
  cd mjpg-streamer/mjpg-streamer-experimental/
 ./mjpg_streamer -i "./input_uvc.so -d /dev/video0 -r 640x480 -f 30" -o "./output_http.so -p 8080 -w ./www"
+
+sudo systemctl restart ros_start.service
+
 ```
