@@ -12,5 +12,14 @@ height: 15.0
 resolution: 0.05
 
 plugins:
-  - {name: obstacle_layer, type: "costmap_2d::ObstacleLayer"}
+  - {name: static_layer,    type: "costmap_2d::StaticLayer"}
+  - {name: obstacle_layer,  type: "costmap_2d::ObstacleLayer"}
+  - { name: virtual_layer, type: "virtual_costmap_layer::VirtualLayer" }
   - {name: inflation_layer, type: "costmap_2d::InflationLayer"}
+
+
+virtual_layer:
+  enabled: true
+  zone_topics:     ["/navigation_zone"]
+  obstacle_topics: ["/virtual_obstacles"]
+  forms: []

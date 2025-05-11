@@ -1,3 +1,0 @@
-<launch>
-    <node name="state_machine" pkg="cyber_is_autonomy_controller" type="state_machine.py" output="screen"/>
-</launch>

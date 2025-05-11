@@ -1,0 +1,8 @@
+<launch>
+    <node name="search_start" pkg="cyber_is_mission_elements" type="search_orientation" output="screen">
+        <param name="robot_state_topic" value="/robot_state"/>
+        <param name="cmd_vel_topic" value="/cmd_vel"/>
+        <param name="line_detector_topic" value="/line_detector_position"/>
+        <param name="base_speed" value="0.25"/>
+    </node>
+</launch>

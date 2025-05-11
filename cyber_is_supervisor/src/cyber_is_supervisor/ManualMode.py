@@ -17,20 +17,22 @@ class ManualMode:
     def start_mode(self):
         if not self.process or self.process.poll() is not None:
             rospy.loginfo("Starting manual mode...")
+            self.publisher.publish("START_MANUAL_MODE")
+            self.leds_publisher.publish("FRONT_HALF")
+            self.leds_publisher.publish("SIDE_GREEN_STROBE")
+            self.leds_publisher.publish("BACK_HALF")
             self.shutdown_requested = False  # <-- resetujemy flagę
             self.process = subprocess.Popen(
                 ['roslaunch', 'cyber_is_manual_controller', 'start_manual_mode.launch']
             )
-            self.publisher.publish("START_MANUAL_MODE")
-            self.leds_publisher.publish("FRONT_HALF")
-            self.leds_publisher.publish("SIDE_GREEN")
-            self.leds_publisher.publish("BACK_OFF")
-
             # Start monitoring in a background thread
             self.running = True
             self.monitor_thread = threading.Thread(target=self.monitor_process)
             self.monitor_thread.daemon = True
             self.monitor_thread.start()
+            rospy.sleep(3)
+            self.leds_publisher.publish("SIDE_GREEN")
+            self.publisher.publish("READY_MANUAL_MODE")
 
     def stop_mode(self):
         self.running = False

@@ -9,7 +9,10 @@ find_package(catkin REQUIRED COMPONENTS
         tf
         actionlib
         move_base_msgs
+        std_srvs
+        virtual_costmap_layer
 )
+
 
 ## Deklaracja pakietu
 catkin_package()
@@ -31,17 +34,24 @@ add_executable(search_start_node src/search_start_node.cpp)
 
 target_link_libraries(search_start_node
         ${catkin_LIBRARIES}
-)
 
-add_executable(map_limiter_node src/map_limiter_node.cpp)
-
-target_link_libraries(map_limiter_node
-        ${catkin_LIBRARIES}
 )
 
 add_executable(search_meta_node src/search_meta_node.cpp)
 
 target_link_libraries(search_meta_node
+        ${catkin_LIBRARIES}
+)
+
+add_executable(search_orientation src/search_orientation.cpp)
+
+target_link_libraries(search_orientation
+        ${catkin_LIBRARIES}
+)
+
+add_executable(go_to_zone src/go_to_zone.cpp)
+
+target_link_libraries(go_to_zone
         ${catkin_LIBRARIES}
 )
 
