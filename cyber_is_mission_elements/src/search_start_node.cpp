@@ -5,16 +5,20 @@
 #include <std_msgs/String.h>
 #include <std_msgs/Bool.h>
 #include <geometry_msgs/Twist.h>
+#include <geometry_msgs/Pose.h>
+#include <nav_msgs/Odometry.h>
 #include <virtual_costmap_layer/Obstacles.h>
 #include <virtual_costmap_layer/Form.h>
 
 class SearchStartController {
 private:
   ros::NodeHandle nh_, pnh_;
-  ros::Subscriber line_sub_;
+  ros::Subscriber line_sub_, odom_sub_;
   ros::Publisher cmd_vel_pub_, state_pub_, wall_pub_;
+  geometry_msgs::Pose current_pose_;
 
-  std::string robot_state_topic_, cmd_vel_topic_, line_detector_topic_, magnet_sensor_topic_;
+
+  std::string robot_state_topic_, cmd_vel_topic_, line_detector_topic_, odom_topic_ ;
   double base_speed_;
   bool search_active_ = false;
   bool full_line_detected_ = false;
@@ -24,13 +28,15 @@ public:
     pnh_.param<std::string>("robot_state_topic", robot_state_topic_, "/robot_state");
     pnh_.param<std::string>("cmd_vel_topic", cmd_vel_topic_, "/cmd_vel");
     pnh_.param<std::string>("line_detector_topic", line_detector_topic_, "/line_detector_position");
-    pnh_.param<std::string>("magnet_sensor_topic", magnet_sensor_topic_, "/magnet_filtered");
+    pnh_.param<std::string>("odom_topic", odom_topic_, "/odom");
     pnh_.param<double>("base_speed", base_speed_, 0.2);
 
     line_sub_ = nh_.subscribe(line_detector_topic_, 1, &SearchStartController::lineCallback, this);
     cmd_vel_pub_ = nh_.advertise<geometry_msgs::Twist>(cmd_vel_topic_, 1);
     state_pub_ = nh_.advertise<std_msgs::String>(robot_state_topic_, 1);
     wall_pub_=  nh_.advertise<virtual_costmap_layer::Obstacles>("/virtual_obstacles",1, true);
+    odom_sub_ = nh_.subscribe(odom_topic_, 10, &SearchStartController::odomCallback, this);
+
     search_active_ = true;  // Od razu aktywujemy wyszukiwanie
     full_line_detected_ = false;
 
@@ -48,12 +54,21 @@ public:
       full_line_detected_ = true;
       ROS_INFO("FULL_LINE detected. Slowing down and enabling magnet check.");
       publishSpeed(0.0);
+
+
       std_msgs::String msg;
       msg.data = "FOUNDED_START_POSE";
       make_wall();
       state_pub_.publish(msg);
     }
   }
+
+  void odomCallback(const nav_msgs::Odometry::ConstPtr& msg) {
+    current_pose_ = msg->pose.pose;
+    pnh_.setParam("/start_pose/x", current_pose_.position.x);
+    pnh_.setParam("/start_pose/y", current_pose_.position.y);
+  }
+
 
   void publishSpeed(double speed) {
     geometry_msgs::Twist twist;
@@ -64,14 +79,15 @@ public:
     ROS_INFO("Publishing cmd_vel: linear.x = %.2f", speed);
   }
 
+
   void make_wall()
   {
 
     geometry_msgs::Point p0, p1, p2, p3;
-    p0.x = -0.10; p0.y = -10.0;
-    p1.x = -0.10; p1.y = 10.0;
-    p2.x = -0.20; p2.y = 10.0;
-    p3.x = -0.20; p3.y = -10.0;
+    p0.x =current_pose_.position.x -0.10; p0.y = -10.0;
+    p1.x =current_pose_.position.x -0.10; p1.y = 10.0;
+    p2.x =current_pose_.position.x -0.20; p2.y = 10.0;
+    p3.x =current_pose_.position.x -0.20; p3.y = -10.0;
 
     virtual_costmap_layer::Form polygon;
     polygon.form = {p0, p1, p2, p3};      // ← wektor punktów

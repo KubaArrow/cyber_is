@@ -1,8 +1,19 @@
 <launch>
     <node name="search_start" pkg="cyber_is_mission_elements" type="search_orientation" output="screen">
         <param name="robot_state_topic" value="/robot_state"/>
-        <param name="cmd_vel_topic" value="/cmd_vel"/>
         <param name="line_detector_topic" value="/line_detector_position"/>
-        <param name="base_speed" value="0.25"/>
+        <param name="wall_topic" value="/virtual_obstacles"/>
+        <param name="odom_topic" value="/odometry/filtered"/>
+
+        <param name="move_front" value="0.25"/>
+        <param name="move_side" value="0.50"/>
+
+        <param name="cage_height" value="2.50"/>
+        <param name="cage_width" value="2.50"/>
+        <param name="cage_size" value="0.10"/>
+        <param name="cage_move" value="0.10"/>
+
+        <param name="wall_start" value="bottom"/>
+        <param name="turn_left" value="true"/>
     </node>
 </launch>

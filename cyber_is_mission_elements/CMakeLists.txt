@@ -49,13 +49,13 @@ target_link_libraries(search_orientation
         ${catkin_LIBRARIES}
 )
 
-add_executable(go_to_zone src/go_to_zone.cpp)
+add_executable(zone_navigator src/zone_navigator.cpp)
 
-target_link_libraries(go_to_zone
+target_link_libraries(zone_navigator
         ${catkin_LIBRARIES}
 )
 
-add_dependencies(mission_collector_node search_start_node map_limiter_node search_meta_node
+add_dependencies(mission_collector_node search_start_node search_meta_node
         ${${PROJECT_NAME}_EXPORTED_TARGETS}
         ${catkin_EXPORTED_TARGETS}
 )
