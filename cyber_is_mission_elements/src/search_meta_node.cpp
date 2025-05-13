@@ -1,136 +1,179 @@
+// search_meta.cpp – v4 (May 2025)
 //
-// Created by victoria on 12.04.25.
-//
+//  🆕  Fixes edge‑detection frame issue & adds robust constant‑velocity publish.
+//       • Pose is transformed into the zone’s frame (default "map") via tf2.
+//       • Constant forward cmd_vel is streamed at 10 Hz while ALONG_LINE.
+//       • Edge detection and rotations unchanged otherwise.
+// ------------------------------------------------------------------------------
+//  Build rules unchanged (search_meta target).
+
 #include <ros/ros.h>
+#include <geometry_msgs/Twist.h>
+#include <geometry_msgs/PoseStamped.h>
 #include <std_msgs/String.h>
 #include <std_msgs/Bool.h>
-#include <geometry_msgs/Twist.h>
+#include <nav_msgs/Odometry.h>
 #include <move_base_msgs/MoveBaseAction.h>
 #include <actionlib/client/simple_action_client.h>
-#include <tf/transform_listener.h>
+#include <tf2/utils.h>
+#include <tf2_ros/transform_listener.h>
+#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
+#include <XmlRpcValue.h>
+#include <unordered_map>
+#include <cmath>
 
-typedef actionlib::SimpleActionClient<move_base_msgs::MoveBaseAction> MoveBaseClient;
+using MoveBaseClient = actionlib::SimpleActionClient<move_base_msgs::MoveBaseAction>;
 
-class FinishLineSeeker {
+class SearchMeta
+{
+public:
+  SearchMeta(ros::NodeHandle nh, ros::NodeHandle pnh)
+    : nh_(nh), pnh_(pnh), ac_("move_base", true), tf_buffer_(), tf_listener_(tf_buffer_)
+  {
+    if (!readZonePoints())
+    {
+      ROS_FATAL("~zone_points invalid or missing (need 4 [x,y] pairs)");
+      ros::shutdown();
+    }
+
+    initial_forward_   = pnh_.param("initial_forward", 1.0);
+    goal_timeout_      = pnh_.param("goal_timeout", 300.0);
+    frame_id_          = pnh_.param<std::string>("frame_id", "map");   // target frame for edges
+    final_orientation_ = pnh_.param<std::string>("final_orientation", "none");
+
+    orient_map_ = {{"none", std::numeric_limits<double>::quiet_NaN()},
+                   {"right", 0.0}, {"top", M_PI_2}, {"bottom", -M_PI_2}, {"left", M_PI}};
+    if (!orient_map_.count(final_orientation_)) {
+      ROS_WARN("Unknown final_orientation '%s' – using 'none'", final_orientation_.c_str());
+      final_orientation_ = "none";
+    }
+
+    line_sub_   = nh_.subscribe<std_msgs::String>("/line_detector_position", 1, &SearchMeta::lineCb, this);
+    magnet_sub_ = nh_.subscribe<std_msgs::Bool>("/magnet/filtered", 1, &SearchMeta::magnetCb, this);
+
+    state_pub_  = nh_.advertise<std_msgs::String>("/robot_state", 1, true);
+    vel_pub_    = nh_.advertise<geometry_msgs::Twist>("/cmd_vel", 1);
+
+    ROS_INFO("Waiting for move_base …");
+    ac_.waitForServer();
+    ROS_INFO("move_base ready");
+
+    phase_ = Phase::IDLE;
+    edges_hit_ = 0;
+
+    startMission();
+  }
+
 private:
+  enum class Phase { IDLE, FORWARD_TO_LINE, ROTATE_90, ALONG_LINE, ROTATE_180, FINAL_ORIENT, FINISHED };
+
   ros::NodeHandle nh_, pnh_;
+  MoveBaseClient  ac_;
+  tf2_ros::Buffer tf_buffer_;
+  tf2_ros::TransformListener tf_listener_;
+
+  // params
+  double initial_forward_, goal_timeout_;
+  std::string frame_id_;
+  std::string final_orientation_;
+  std::unordered_map<std::string,double> orient_map_;
+
+  // zone bounds
+  double min_x_, max_x_, min_y_, max_y_;
+
+  // runtime
+  Phase phase_;
+  bool  full_line_detected_ = false;
+  int   edges_hit_ = 0;
+  ros::Time goal_sent_;
+  geometry_msgs::Twist forward_cmd_;
+
+  // ROS
   ros::Subscriber line_sub_, magnet_sub_;
-  ros::Publisher cmd_vel_pub_, state_pub_;
+  ros::Publisher  state_pub_, vel_pub_;
 
-  std::string cmd_vel_topic_, line_detector_topic_, magnet_topic_, robot_state_topic_;
-  double base_speed_;
-  bool turn_left_;
-  bool full_line_detected_ = false;
-  bool moved_forward_ = false;
-  bool turned_ = false;
-  bool following_line_ = false;
-  bool reversing_ = false;
+  /* ---------- zone parsing ---------------- */
+  bool readZonePoints()
+  {
+    XmlRpc::XmlRpcValue arr;
+    if (!pnh_.getParam("zone_points", arr) && !nh_.getParam("zone_points", arr))
+      return false;
+    if (arr.getType()!=XmlRpc::XmlRpcValue::TypeArray || arr.size()!=4) return false;
 
-  MoveBaseClient move_client_;
-  tf::TransformListener tf_listener_;
+    std::vector<double> xs, ys;
+    for (int i=0;i<arr.size();++i){
+      if (arr[i].getType()!=XmlRpc::XmlRpcValue::TypeArray||arr[i].size()!=2)return false;
+      xs.push_back(double(arr[i][0])); ys.push_back(double(arr[i][1])); }
+    min_x_=*std::min_element(xs.begin(),xs.end()); max_x_=*std::max_element(xs.begin(),xs.end());
+    min_y_=*std::min_element(ys.begin(),ys.end()); max_y_=*std::max_element(ys.begin(),ys.end());
+    ROS_INFO("Zone bounds in %s: x[%.2f,%.2f] y[%.2f,%.2f]",frame_id_.c_str(),min_x_,max_x_,min_y_,max_y_);
+    return true;
+  }
+
+  /* ---------- goals in base_footprint ------ */
+  void sendRelativeGoal(double dx,double dy,double dyaw){
+    move_base_msgs::MoveBaseGoal g; g.target_pose.header.frame_id="base_footprint";
+    g.target_pose.header.stamp=ros::Time::now();
+    g.target_pose.pose.position.x=dx; g.target_pose.pose.position.y=dy;
+    tf2::Quaternion q; q.setRPY(0,0,dyaw); g.target_pose.pose.orientation=tf2::toMsg(q);
+    ac_.sendGoal(g); goal_sent_=ros::Time::now(); }
+  void sendForward(double m){sendRelativeGoal(m,0,0);} void sendRot(double deg){sendRelativeGoal(0,0,deg*M_PI/180.0);}
+
+  /* ---------- helpers ---------------------- */
+  void publishState(const std::string&s){std_msgs::String m; m.data=s; state_pub_.publish(m);}
+  void stopRobot(){ac_.cancelAllGoals(); geometry_msgs::Twist z; vel_pub_.publish(z);}
+
+  geometry_msgs::PoseStamped mapPose(){
+    geometry_msgs::PoseStamped ps; ps.header.frame_id="base_link"; ps.header.stamp=ros::Time(0);
+    ps.pose.orientation.w=1.0; // identity
+    try{
+      return tf_buffer_.transform(ps, frame_id_);
+    }catch(const tf2::TransformException& e){ROS_WARN_THROTTLE(2.0,"TF error: %s",e.what()); return ps;}
+  }
+
+  /* ---------- callbacks -------------------- */
+  void lineCb(const std_msgs::String::ConstPtr& m){
+    if(!searchActive()||m->data!="FULL_LINE"||full_line_detected_)return;
+    full_line_detected_=true; stopRobot(); publishState("FOUNDED_START_POSE");
+    phase_=Phase::ROTATE_90; sendRot(90);
+  }
+  void magnetCb(const std_msgs::Bool::ConstPtr& b){ if(!b->data||phase_==Phase::FINISHED)return; stopRobot(); publishState("FOUNDED_FINISH"); phase_=Phase::FINISHED; }
+
+  /* ---------- mission control -------------- */
+  void startMission(){ phase_=Phase::FORWARD_TO_LINE; sendForward(initial_forward_); ROS_INFO("Drive %.2fm forward",initial_forward_); }
+
+  bool searchActive()const{return phase_==Phase::FORWARD_TO_LINE||phase_==Phase::ALONG_LINE;}
+  static double rad2deg(double r){return r*180.0/M_PI;}
 
 public:
-  FinishLineSeeker() : pnh_("~"), move_client_("move_base", true) {
-    pnh_.param<std::string>("cmd_vel_topic", cmd_vel_topic_, "/cmd_vel");
-    pnh_.param<std::string>("line_detector_topic", line_detector_topic_, "/line_detector_position");
-    pnh_.param<std::string>("magnet_sensor_topic", magnet_topic_, "/magnet_filtered");
-    pnh_.param<std::string>("robot_state_topic", robot_state_topic_, "/robot_state");
-    pnh_.param<double>("base_speed", base_speed_, 0.2);
-    pnh_.param<bool>("turn_left", turn_left_, true);
+  void spin(){ ros::Rate loop(10);
+    while(ros::ok()){
+      ros::spinOnce();
 
-    cmd_vel_pub_ = nh_.advertise<geometry_msgs::Twist>(cmd_vel_topic_, 1);
-    state_pub_ = nh_.advertise<std_msgs::String>(robot_state_topic_, 1);
+      /* constant cmd */
+      if(phase_==Phase::ALONG_LINE) vel_pub_.publish(forward_cmd_);
 
-    line_sub_ = nh_.subscribe(line_detector_topic_, 1, &FinishLineSeeker::lineCallback, this);
-    magnet_sub_ = nh_.subscribe(magnet_topic_, 1, &FinishLineSeeker::magnetCallback, this);
+      /* edge detection (map frame) */
+      if(phase_==Phase::ALONG_LINE){ auto pose=mapPose(); double y=pose.pose.position.y;
+        bool hit=false; if(edges_hit_==0&&fabs(y-max_y_)<0.05)hit=true; else if(edges_hit_==1&&fabs(y-min_y_)<0.05)hit=true;
+        if(hit){ ++edges_hit_; stopRobot(); ROS_INFO("Edge %d reached",edges_hit_);
+          if(edges_hit_>=2){ phase_=Phase::FINAL_ORIENT; double yaw=orient_map_[final_orientation_]; if(std::isnan(yaw)){ publishState("ABORT_MISSSION"); phase_=Phase::FINISHED;} else sendRot(rad2deg(yaw)); }
+          else{ phase_=Phase::ROTATE_180; sendRot(180);} }
+      }
 
-    move_client_.waitForServer();
-    ROS_INFO("FinishLineSeeker initialized. Driving forward...");
-    drive(base_speed_);
-  }
+      /* timeouts */
+      if((phase_==Phase::FORWARD_TO_LINE||phase_==Phase::ROTATE_90||phase_==Phase::ROTATE_180||phase_==Phase::FINAL_ORIENT)
+          && !ac_.getState().isDone() && (ros::Time::now()-goal_sent_).toSec()>goal_timeout_){ ROS_WARN("Goal timeout"); stopRobot(); publishState("ABORT_MISSSION"); phase_=Phase::FINISHED; }
 
-  void drive(double speed) {
-    geometry_msgs::Twist twist;
-    twist.linear.x = speed;
-    twist.angular.z = 0.0;
-    cmd_vel_pub_.publish(twist);
-  }
+      /* goal finished transitions */
+      if(ac_.getState().isDone()){
+        if(phase_==Phase::ROTATE_90 && ac_.getState()==actionlib::SimpleClientGoalState::SUCCEEDED){ phase_=Phase::ALONG_LINE; forward_cmd_=geometry_msgs::Twist(); forward_cmd_.linear.x=0.15; }
+        else if(phase_==Phase::ROTATE_180 && ac_.getState()==actionlib::SimpleClientGoalState::SUCCEEDED){ phase_=Phase::ALONG_LINE; forward_cmd_=geometry_msgs::Twist(); forward_cmd_.linear.x=0.15; }
+        else if(phase_==Phase::FINAL_ORIENT && ac_.getState()==actionlib::SimpleClientGoalState::SUCCEEDED){ publishState("ABORT_MISSSION"); phase_=Phase::FINISHED; }
+      }
 
-  void rotate90() {
-    geometry_msgs::Twist twist;
-    twist.angular.z = turn_left_ ? 0.6 : -0.6;
-    ros::Duration(1.57 / std::abs(twist.angular.z)).sleep();  // ~90 deg
-    twist.angular.z = 0.0;
-    cmd_vel_pub_.publish(twist);
-    ros::Duration(0.5).sleep();
-  }
-
-  void lineCallback(const std_msgs::String::ConstPtr& msg) {
-    if (reversing_ || !msg) return;
-
-    std::string val = msg->data;
-
-    if (!full_line_detected_ && val == "FULL_LINE") {
-      full_line_detected_ = true;
-      ROS_INFO("FULL_LINE detected. Stopping and sending small forward goal...");
-      drive(0.0);
-      sendSmallForwardGoal();
-      return;
-    }
-
-    if (turned_ && val != "CENTER") {
-      ROS_WARN("Corner detected again. Reversing...");
-      reversing_ = true;
-      drive(-base_speed_);
-    }
-  }
-
-  void magnetCallback(const std_msgs::Bool::ConstPtr& msg) {
-    if (!turned_ || !msg->data || reversing_) return;
-
-    ROS_INFO("Magnet detected. Mission complete!");
-    drive(0.0);
-    std_msgs::String done;
-    done.data = "MISSION_SUCCESS";
-    state_pub_.publish(done);
-  }
-
-  void sendSmallForwardGoal() {
-    tf::StampedTransform tf_map_base;
-    try {
-      tf_listener_.waitForTransform("map", "base_link", ros::Time(0), ros::Duration(2.0));
-      tf_listener_.lookupTransform("map", "base_link", ros::Time(0), tf_map_base);
-    } catch (tf::TransformException& ex) {
-      ROS_ERROR("TF Error: %s", ex.what());
-      return;
-    }
-
-    double yaw = tf::getYaw(tf_map_base.getRotation());
-
-    move_base_msgs::MoveBaseGoal goal;
-    goal.target_pose.header.frame_id = "map";
-    goal.target_pose.header.stamp = ros::Time::now();
-    goal.target_pose.pose.position.x = tf_map_base.getOrigin().x() + 0.1 * cos(yaw);
-    goal.target_pose.pose.position.y = tf_map_base.getOrigin().y() + 0.1 * sin(yaw);
-    goal.target_pose.pose.orientation = tf::createQuaternionMsgFromYaw(yaw);
-
-    move_client_.sendGoal(goal);
-    move_client_.waitForResult();
-
-    if (move_client_.getState() == actionlib::SimpleClientGoalState::SUCCEEDED) {
-      ROS_INFO("Moved 0.1m forward. Now rotating...");
-      moved_forward_ = true;
-      rotate90();
-      turned_ = true;
-      following_line_ = true;
-      drive(base_speed_);
-    }
+      loop.sleep(); }
   }
 };
 
-int main(int argc, char** argv) {
-  ros::init(argc, argv, "finish_line_seeker");
-  FinishLineSeeker seeker;
-  ros::spin();
-  return 0;
-}
+int main(int argc,char** argv){ ros::init(argc,argv,"search_meta"); ros::NodeHandle nh,pnh("~"); SearchMeta sm(nh,pnh); sm.spin(); return 0; }

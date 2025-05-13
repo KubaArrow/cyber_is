@@ -1,13 +1,13 @@
 
 <launch>
 
-    <arg name="p0x" default="0.0" /> <arg name="p0y" default="0.0" />
-    <arg name="p1x" default="-1.0" /> <arg name="p1y" default="0.0" />
-    <arg name="p2x" default="-1.0" /> <arg name="p2y" default="-1.0" />
-    <arg name="p3x" default="0.0" /> <arg name="p3y" default="-1.0" />
+    <arg name="p0x" default="-0.50" /> <arg name="p0y" default="0.25" />
+    <arg name="p1x" default="1.75" /> <arg name="p1y" default="0.25" />
+    <arg name="p2x" default="1.75" /> <arg name="p2y" default="0.75" />
+    <arg name="p3x" default="-0.50" /> <arg name="p3y" default="0.75" />
 
     <arg name="frame_id"     default="map" />
-    <arg name="final_orientation"     default="right" />
+    <arg name="final_orientation"     default="left" />
     <arg name="goal_timeout" default="300" />
 
     <rosparam param="/zone_navigator/zone_points" subst_value="true">
