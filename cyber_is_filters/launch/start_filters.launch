@@ -2,13 +2,13 @@
     <node name="line_filter" pkg="cyber_is_filters" type="line_filter" output="screen">
         <param name="line_detector_topic" value="/line_detector"/>
         <param name="max_limit" value="false"/>
-        <param name="min_value" value="600"/>
-        <param name="max_value" value="700"/>
+        <param name="min_value" value="3800"/>
+        <param name="max_value" value="4500"/>
     </node>
     <node name="magnet_filter" pkg="cyber_is_filters" type="magnet_filter" output="screen">
         <param name="magnet_detector_topic" value="/magnet"/>
         <param name="max_limit" value="false"/>
-        <param name="min_value" value="600"/>
-        <param name="max_value" value="700"/>
+        <param name="min_value" value="2800"/>
+        <param name="max_value" value="3500"/>
     </node>
 </launch>

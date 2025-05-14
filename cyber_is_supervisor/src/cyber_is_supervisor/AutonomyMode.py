@@ -51,7 +51,7 @@ class AutonomyMode:
     def start_mode(self):
         rospy.loginfo("Starting autonomy mode...")
         self.state_publisher.publish("START_AUTONOMY_MODE")
-        # self.prepare_mission()
+        self.prepare_mission()
         self.running = True
         self.state_publisher.publish("READY_AUTONOMY_MODE")
         rospy.loginfo("Prepared mission")
@@ -99,7 +99,7 @@ class AutonomyMode:
     def restart_mission(self):
         rospy.loginfo("Restarting autonomy mode...")
         self.state_publisher.publish("RESTART_AUTONOMY_MODE")
-        # self.prepare_mission()
+        self.prepare_mission()
         self.running = True
         self.state_publisher.publish("READY_AUTONOMY_MODE")
         rospy.loginfo("Prepared mission")

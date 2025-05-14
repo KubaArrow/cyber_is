@@ -3,6 +3,7 @@
 #include <ros/ros.h>
 #include <std_msgs/Float64MultiArray.h>
 #include <std_msgs/Bool.h>
+#include <cmath>
 
 class MagnetFilter
 {

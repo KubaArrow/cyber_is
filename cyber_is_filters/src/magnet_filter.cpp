@@ -11,7 +11,7 @@ MagnetFilter::MagnetFilter(ros::NodeHandle& nh, const std::string& topic_name)
     nh_.param("max_limit", max_limit_, false);
 
     sub_ = nh_.subscribe(input_topic_, 10, &MagnetFilter::callback, this);
-    pub_ = nh_.advertise<std_msgs::Float64MultiArray>(input_topic_ + "_filtered", 10);
+    pub_ = nh_.advertise<std_msgs::Bool>(input_topic_ + "_filtered", 10);
 
     ROS_INFO("LineFilter subscribed to: %s, publishing to: %s, min: %d, max: %d",
              input_topic_.c_str(), (input_topic_ + "_filtered").c_str(), min_, max_);
@@ -20,12 +20,23 @@ MagnetFilter::MagnetFilter(ros::NodeHandle& nh, const std::string& topic_name)
 void MagnetFilter::callback(const std_msgs::Float64MultiArray::ConstPtr& msg)
 {
     std_msgs::Bool result;
-
+    ROS_INFO("MagnetFilter: received message with %lu elements", msg->data.size());
     // Upewnij się, że wiadomość zawiera co najmniej 3 elementy
     if (msg->data.size() >= 3)
     {
-        double val = msg->data[2];
+        double val1 = abs(msg->data[0]);
+        double val2 = abs(msg->data[1]);
+        double val3 = abs(msg->data[2]);
 
+        double val = 0;
+
+        if (val1 > val2 && val1 > val3){
+            val=val1;
+        }else if (val2 > val1 && val2 > val3){
+            val=val2;
+        }else{
+            val=val3;
+        }
         if (val >= min_ && (val <= max_ || !max_limit_))
         {
             result.data = true;
