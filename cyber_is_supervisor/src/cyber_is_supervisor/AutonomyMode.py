@@ -106,6 +106,7 @@ class AutonomyMode:
 
     def start_mission(self):
         rospy.loginfo("Starting mission")
+        self.state_publisher.publish("STARTED_MISSION")
         self.mission_process = subprocess.Popen(['roslaunch', 'cyber_is_mission_elements', 'search_start.launch'])
         rospy.loginfo("Starting search start...")
 
@@ -146,7 +147,7 @@ class AutonomyMode:
     def end_mission(self):
         self.destroy_mission()
         rospy.loginfo("Completed mission")
-        self.state_publisher.publish("MISSION_COMPLETE")
+        self.state_publisher.publish("COMPLETE_MISSION")
         self.leds_publisher.publish("SIDE_BLUE_BREATH")
         pass
 
