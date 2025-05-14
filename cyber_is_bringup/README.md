@@ -82,6 +82,12 @@ sudo systemctl daemon-reload
 sudo systemctl enable roscore.service
 sudo systemctl enable ros_start.service
 
+sudo systemctl status roscore.service
+sudo systemctl status ros_start.service
+
+sudo systemctl restart roscore.service
+sudo systemctl restart ros_start.service
+
 sudo systemctl start roscore.service
 
 ```

@@ -84,10 +84,10 @@ public:
   {
 
     geometry_msgs::Point p0, p1, p2, p3;
-    p0.x =current_pose_.position.x -0.10; p0.y = -10.0;
-    p1.x =current_pose_.position.x -0.10; p1.y = 10.0;
-    p2.x =current_pose_.position.x -0.20; p2.y = 10.0;
-    p3.x =current_pose_.position.x -0.20; p3.y = -10.0;
+    p0.x =current_pose_.position.x -0.30; p0.y = -10.0;
+    p1.x =current_pose_.position.x -0.30; p1.y = 10.0;
+    p2.x =current_pose_.position.x -0.50; p2.y = 10.0;
+    p3.x =current_pose_.position.x -0.50; p3.y = -10.0;
 
     virtual_costmap_layer::Form polygon;
     polygon.form = {p0, p1, p2, p3};      // ← wektor punktów

@@ -21,8 +21,6 @@ class AutonomyMode:
         self.mission_process = None
         self.colletor_process = None
 
-        self.shutdown_requested = False
-
     def callback(self, data):
         if self.running:
             self.state = data.data
@@ -72,7 +70,6 @@ class AutonomyMode:
 
     def destroy_mission(self):
         self.running = False
-        self.shutdown_requested = True
         if self.navigation_process and self.navigation_process.poll() is None:
             self.navigation_process.terminate()
             self.navigation_process.wait()
