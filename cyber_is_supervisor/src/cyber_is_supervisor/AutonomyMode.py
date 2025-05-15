@@ -31,19 +31,6 @@ class AutonomyMode:
             self.abort_mission()
         elif self.state == "RESTART_MISSION":
             self.restart_mission()
-        elif self.state == "START_MISSION":
-            self.start_mission()
-        elif self.state == "FOUNDED_START_POSE":
-            self.start_orientation()
-            self.start_mission_collector()
-        elif self.state == "FOUNDED_ORIENTATION":
-            self.go_to_zone()
-        elif self.state == "FOUNDED_ZONE":
-            self.search_meta()
-        elif self.state == "FOUNDED_FINISH":
-            self.finish_mission()
-        elif self.state == "END_MISSION":
-            self.end_mission()
 
 
     def start_mode(self):
@@ -65,6 +52,7 @@ class AutonomyMode:
         self.leds_publisher.publish("SIDE_BLUE_STROBE")
         self.navigation_process = subprocess.Popen(['roslaunch', 'cyber_is_navigation', 'start_navigation.launch'])
         self.filters_process = subprocess.Popen(['roslaunch', 'cyber_is_filters', 'start_filters.launch'])
+        self.mission_process = subprocess.Popen(['roslaunch', 'cyber_is_mission_elements', 'mission.launch'])
         rospy.sleep(10)
         self.leds_publisher.publish("SIDE_BLUE")
 
@@ -73,14 +61,23 @@ class AutonomyMode:
         if self.navigation_process and self.navigation_process.poll() is None:
             self.navigation_process.terminate()
             self.navigation_process.wait()
+            rospy.loginfo("Killing navigation process")
+        else:
+            rospy.logerr("Not killing navigation process")
+
         if self.filters_process and self.filters_process.poll() is None:
             self.filters_process.terminate()
             self.filters_process.wait()
-        self.kill_mission_process()
-        if self.colletor_process and self.colletor_process.poll() is None:
-            self.colletor_process.terminate()
-            self.colletor_process.wait()
+            rospy.loginfo("Killing filters process")
+        else:
+            rospy.logerr("Not killing filters process")
 
+        if self.mission_process and self.mission_process.poll() is None:
+            self.mission_process.terminate()
+            self.mission_process.wait()
+            rospy.loginfo("Killing mission process")
+        else:
+            rospy.logerr("Not killing mission process")
 
     def abort_mission(self):
         rospy.loginfo("Aborting mission...")
@@ -101,79 +98,4 @@ class AutonomyMode:
         self.state_publisher.publish("READY_AUTONOMY_MODE")
         rospy.loginfo("Prepared mission")
 
-    def start_mission(self):
-        rospy.loginfo("Starting mission")
-        self.state_publisher.publish("STARTED_MISSION")
-        self.mission_process = subprocess.Popen(['roslaunch', 'cyber_is_mission_elements', 'search_start.launch'])
-        rospy.loginfo("Starting search start...")
-
-    def start_orientation(self):
-        self.kill_mission_process()
-        rospy.loginfo("Starting orientation")
-        self.mission_process = subprocess.Popen(['roslaunch', 'cyber_is_mission_elements', 'search_orientation.launch'])
-
-
-    def start_mission_collector(self):
-        rospy.loginfo("Starting mission collector")
-        self.colletor_process = subprocess.Popen(['roslaunch', 'cyber_is_mission_elements', 'mission_collecting.launch'])
-
-    def stop_mission_collector(self):
-        if self.colletor_process and self.colletor_process.poll() is None:
-            self.colletor_process.terminate()
-            self.colletor_process.wait()
-            rospy.loginfo("Killing mission process")
-        else:
-            rospy.loginfo("Not killing mission process")
-
-    def go_to_zone(self):
-        self.kill_mission_process()
-        rospy.loginfo("Starting go to zone")
-        self.mission_process = subprocess.Popen(['roslaunch', 'cyber_is_mission_elements', 'go_to_zone.launch'])
-
-    def search_meta(self):
-        self.kill_mission_process()
-        rospy.loginfo("Starting searching for meta...")
-        self.mission_process = subprocess.Popen(['roslaunch', 'cyber_is_mission_elements', 'search_meta.launch'])
-
-    def finish_mission(self):
-        self.kill_mission_process()
-        rospy.loginfo("Starting finish mission")
-        self.mission_process = subprocess.Popen(['roslaunch', 'cyber_is_mission_elements', 'finish.launch'])
-        pass
-
-    def end_mission(self):
-        self.destroy_mission()
-        rospy.loginfo("Completed mission")
-        self.state_publisher.publish("COMPLETE_MISSION")
-        self.leds_publisher.publish("SIDE_BLUE_BREATH")
-        pass
-
-
-    def kill_mission_process(self):
-        if self.mission_process and self.mission_process.poll() is None:
-            self.mission_process.terminate()
-            self.mission_process.wait()
-            rospy.loginfo("Killing mission process")
-        else:
-            rospy.loginfo("Not killing mission process")
-
-    # self.monitor_navigation_thread = threading.Thread(target=self.monitor_navigation_process)
-    # self.monitor_navigation_thread.daemon = True
-    # self.monitor_navigation_thread.start()
-    # def monitor_navigation_process(self):
-    #     while self.running:
-    #         time.sleep(2)
-    #         if self.navigation_process and self.navigation_process.poll() is not None:
-    #             if self.shutdown_requested:
-    #                 rospy.loginfo("Navigation  terminated by user request.")
-    #             else:
-    #                 rospy.logerr("Navigation  process crashed.")
-    #                 self.state_publisher.publish("ERROR_AUTONOMY_MODE")
-    #
-    #                 # restart only if it wasn't shut down manually
-    #                 time.sleep(3)
-    #                 rospy.loginfo("Restarting  ...")
-    #                 self.start_mode()
-    #             self.running = False
-    #             break
 

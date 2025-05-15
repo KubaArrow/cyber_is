@@ -8,6 +8,11 @@ rostopic pub /robot_mode std_msgs/String "data: 'AUTO'" --once
 
 rostopic pub /robot_mode std_msgs/String "data: 'MANUAL'" --once
 
+rostopic pub /magnet_filtered std_msgs/Bool "data: True" --once
+
+
+rostopic pub /line_detector_position std_msgs/String "data: 'FULL_LINE'" --once
+
 
 sudo systemctl restart ros_start.service
 

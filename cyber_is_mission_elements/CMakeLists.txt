@@ -1,5 +1,10 @@
 cmake_minimum_required(VERSION 3.0.2)
 project(cyber_is_mission_elements)
+
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
 find_package(catkin REQUIRED COMPONENTS
         roscpp
         std_msgs
@@ -13,49 +18,76 @@ find_package(catkin REQUIRED COMPONENTS
         virtual_costmap_layer
 )
 
-
-## Deklaracja pakietu
 catkin_package()
 
-## Ścieżki do nagłówków
 include_directories(
         include
         ${catkin_INCLUDE_DIRS}
 )
 
-## Kompilacja node'a
-add_executable(mission_collector_node src/mission_collector_node.cpp)
-
-target_link_libraries(mission_collector_node
+## 1) MissionCollector
+add_library(mission_collector
+        src/MissionCollector.cpp
+)
+target_link_libraries(mission_collector
         ${catkin_LIBRARIES}
 )
 
-add_executable(search_start_node src/search_start_node.cpp)
-
-target_link_libraries(search_start_node
-        ${catkin_LIBRARIES}
-
+## 2) SearchStart
+add_library(search_start
+        src/SearchStart.cpp
 )
-
-add_executable(search_meta_node src/search_meta_node.cpp)
-
-target_link_libraries(search_meta_node
+target_link_libraries(search_start
         ${catkin_LIBRARIES}
 )
 
-add_executable(search_orientation src/search_orientation.cpp)
-
+## 3) SearchOrientation
+add_library(search_orientation
+        src/SearchOrientation.cpp
+)
 target_link_libraries(search_orientation
         ${catkin_LIBRARIES}
 )
 
-add_executable(zone_navigator src/zone_navigator.cpp)
-
+## 4) ZoneNavigator
+add_library(zone_navigator
+        src/ZoneNavigator.cpp
+)
 target_link_libraries(zone_navigator
         ${catkin_LIBRARIES}
 )
 
-add_dependencies(mission_collector_node search_start_node search_meta_node
+## 5) SearchMeta
+add_library(search_meta
+        src/SearchMeta.cpp
+)
+target_link_libraries(search_meta
+        ${catkin_LIBRARIES}
+)
+
+## 6) MissionController
+add_library(mission_controller
+        src/MissionController.cpp
+)
+target_link_libraries(mission_controller
+        ${catkin_LIBRARIES}
+        mission_collector
+        search_start
+        search_orientation
+        zone_navigator
+        search_meta
+)
+
+## 7) Node executable
+add_executable(mission_controller_node
+        src/main.cpp
+)
+target_link_libraries(mission_controller_node
+        ${catkin_LIBRARIES}
+        mission_controller
+)
+
+add_dependencies(mission_controller_node
         ${${PROJECT_NAME}_EXPORTED_TARGETS}
         ${catkin_EXPORTED_TARGETS}
 )
