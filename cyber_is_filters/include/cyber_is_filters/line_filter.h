@@ -17,8 +17,9 @@ private:
     ros::Publisher pos_pub_;
     std::string input_topic_;
     bool max_limit_;
-    int min_;
-    int max_;
+    int treshhold[5]={100,100,100,100,100};
+
+
 
     void callback(const std_msgs::UInt16MultiArray::ConstPtr& msg);
     std::string interpretPosition(const std::vector<int8_t>& data);

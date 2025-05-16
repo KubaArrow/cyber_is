@@ -6,8 +6,12 @@
 LineFilter::LineFilter(ros::NodeHandle& nh, const std::string& topic_name)
     : nh_(nh), input_topic_(topic_name)
 {
-    nh_.param("min_value", min_, 100);
-    nh_.param("max_value", max_, 10);
+    nh_.param("/line_filter/threshold0", treshhold[0], 100);
+    nh_.param("/line_filter/threshold1", treshhold[1], 100);
+    nh_.param("/line_filter/threshold2", treshhold[2], 100);
+    nh_.param("/line_filter/threshold3", treshhold[3], 100);
+    nh_.param("/line_filter/threshold4", treshhold[4], 100);
+
     nh_.param("max_limit", max_limit_, false);
 
     sub_ = nh_.subscribe(input_topic_, 10, &LineFilter::callback, this);
@@ -15,22 +19,24 @@ LineFilter::LineFilter(ros::NodeHandle& nh, const std::string& topic_name)
     pos_pub_ = nh_.advertise<std_msgs::String>(input_topic_ + "_position", 10);
 
 
-    ROS_INFO("LineFilter subscribed to: %s, publishing to: %s, min: %d, max: %d",
-             input_topic_.c_str(), (input_topic_ + "_filtered").c_str(), min_, max_);
+    ROS_INFO("LineFilter subscribed to: %s, publishing to: %s, thresholds: %d, %d, %d, %d, %d",
+             input_topic_.c_str(), (input_topic_ + "_filtered").c_str(), treshhold[0], treshhold[1], treshhold[2],treshhold[3], treshhold[4]);
 }
 
 void LineFilter::callback(const std_msgs::UInt16MultiArray::ConstPtr& msg)
 {
 
     std_msgs::ByteMultiArray result;
+    int index=0;
     for (auto val : msg->data)
     {
-        if (val >= min_ && (val <= max_ || !max_limit_))
+        if (val >= treshhold[index])
         {
             result.data.push_back(true);
         }else{
           result.data.push_back(false);
          }
+        index++;
     }
 
     std_msgs::String status;
@@ -66,15 +72,12 @@ std::string LineFilter::interpretPosition(const std::vector<int8_t>& data)
 
     if (count >= 4)
         return "WIDE_LINE";
-    else if (average_pos < 1.0)
-        return "FAR_LEFT";
     else if (average_pos < 2.0)
         return "LEFT";
     else if (average_pos < 2.5)
         return "CENTER";
-    else if (average_pos < 3.5)
-        return "RIGHT";
     else
-        return "FAR_RIGHT";
+        return "RIGHT";
+
 }
 

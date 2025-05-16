@@ -11,8 +11,8 @@ def publisher():
 
     while not rospy.is_shutdown():
         msg = UInt16MultiArray()
-        msg.data = [random.randint(0, 1000) for _ in range(5)]
-        # msg.data = [0,0,0,1000,1000]
+        #msg.data = [random.randint(0, 1000) for _ in range(5)]
+        msg.data = [2200,3100,0,3100,2800]
         rospy.loginfo(f"Publishing: {msg.data}")
         pub.publish(msg)
         rate.sleep()
