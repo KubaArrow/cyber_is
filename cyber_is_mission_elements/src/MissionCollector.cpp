@@ -7,12 +7,12 @@
 
 
 MissionCollector::MissionCollector(ros::NodeHandle &nh): nh_(nh) {
-    nh_.param<std::string>("odom_topic", odom_topic_, "/odom");
-    nh_.param<std::string>("battery_topic", battery_topic_, "/battery_state");
+    nh_.param<std::string>("/mission/odom_topic", odom_topic_, "/odom");
+    nh_.param<std::string>("/mission/battery_topic", battery_topic_, "/battery_state");
 
-    nh_.param<std::string>("duration_topic", duration_topic_, "/mission_duration");
-    nh_.param<std::string>("length_topic", length_topic_, "/mission_length");
-    nh_.param<std::string>("energy_topic", energy_topic_, "/mission_energy");
+    nh_.param<std::string>("/mission/duration_topic", duration_topic_, "/mission_duration");
+    nh_.param<std::string>("/mission/length_topic", length_topic_, "/mission_length");
+    nh_.param<std::string>("/mission/energy_topic", energy_topic_, "/mission_energy");
 
     nh_.param<double>("publish_rate", publish_rate_, 1.0);
 

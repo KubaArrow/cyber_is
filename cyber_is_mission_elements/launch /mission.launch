@@ -18,10 +18,17 @@
         <!--TOPICS-->
         <param name="state_topic" value="/robot_state"/>
         <param name="line_detector_topic" value="/line_detector_position"/>
-        <param name="odom_topic" value="/odom"/>
+        <param name="odom_topic" value="/odometry/filtered"/>
         <param name="wall_topic" value="/virtual_obstacles"/>
         <param name="magnet_topic" value="/magnet_filtered"/>
         <param name="zone_topic" value="/zone_polygon"/>
+        <param name="battery_topic" value="/battery"/>
+        <param name="duration_topic" value="/mission_duration"/>
+        <param name="length_topic" value="/mission_length"/>
+        <param name="energy_topic" value="/mission_energy"/>
+
+        <!--Collector-->
+        <param name="publish_rate" value="1.0"/>
 
         <!--ORIENTATION-->
         <param name="start_position" value="bottom"/>
