@@ -59,13 +59,20 @@ SearchOrientation::SearchOrientation(
 void SearchOrientation::executeSequence() {
     const double yaw = (turn_left_ ? M_PI / 2.0 : -M_PI / 2.0);
     sendRelativeGoal(move_front_, 0.0, yaw);
-    if (!waitForResult()) return;
+    if (!waitForResult()) {
+        // Nie wysyłaj abort! Po prostu kończ sekwencję.
+        return;
+    }
 
     search_active_ = true;
     sendRelativeGoal(move_side_, 0.0, 0.0);
-    if (!waitForResultWithAbordOnDone()) return;
+    if (!waitForResultWithAbordOnDone()) {
+        // W środku tej funkcji już masz publishAbort()
+        return;
+    }
     search_active_ = false;
 }
+
 
 // ————————————————————————————————————————— helpers ——————————————————————————————————————————————
 void SearchOrientation::sendRelativeGoal(const double dx, const double dy, const double dyaw) {
@@ -83,26 +90,24 @@ void SearchOrientation::sendRelativeGoal(const double dx, const double dy, const
 }
 
 bool SearchOrientation::waitForResult() const {
-
     ros::Rate r(20);
     while (ros::ok()) {
         if (full_line_detected_) {
             ROS_WARN("[SearchOrientation] FULL_LINE detected → cancel current goal");
-
-           // return false;
-            break;
+            return false;
         }
+
         if (ac_.getState().isDone()) {
-            break;
-          //  return !(ac_.getState() == actionlib::SimpleClientGoalState::SUCCEEDED);
+            // Jeśli goal zakończony sukcesem
+            return ac_.getState() == actionlib::SimpleClientGoalState::SUCCEEDED;
         }
-
 
         ros::spinOnce();
         r.sleep();
     }
     return false;
 }
+
 
 bool SearchOrientation::waitForResultWithAbordOnDone() const {
 
