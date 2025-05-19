@@ -32,8 +32,8 @@
         <!--CAGE-->
         <param name="cage_height" value="2.50"/>
         <param name="cage_width" value="2.50"/>
-        <param name="cage_size" value="0.10"/>
-        <param name="cage_move" value="0.20"/>
+        <param name="cage_size" value="0.20"/>
+        <param name="cage_move" value="0.40"/>
 
         <!--ZONE-->
         <param name="final_orientation" value="right"/>
