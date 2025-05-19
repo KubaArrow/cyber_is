@@ -50,6 +50,7 @@ private:
     void sendRelativeGoal(double dx, double dy, double dyaw);
 
     bool waitForResult() const;
+    bool waitForResultWithAbordOnDone() const;
 
     void make_walls();
 

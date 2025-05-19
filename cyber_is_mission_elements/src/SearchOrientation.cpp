@@ -63,7 +63,7 @@ void SearchOrientation::executeSequence() {
 
     search_active_ = true;
     sendRelativeGoal(move_side_, 0.0, 0.0);
-    if (!waitForResult()) return;
+    if (!waitForResultWithAbordOnDone()) return;
     search_active_ = false;
 }
 
@@ -92,7 +92,25 @@ bool SearchOrientation::waitForResult() const {
             return false;
         }
 
+
+        ros::spinOnce();
+        r.sleep();
+    }
+    return false;
+}
+
+bool SearchOrientation::waitForResultWithAbordOnDone() const {
+
+    ros::Rate r(20);
+    while (ros::ok()) {
+        if (full_line_detected_) {
+            ROS_WARN("[SearchOrientation] FULL_LINE detected → cancel current goal");
+
+            return false;
+        }
+
         if (ac_.getState().isDone()) {
+            ROS_WARN("[SearchOrientation] Move vase done -> cancel mission");
             publishAbort();
             return ac_.getState() == actionlib::SimpleClientGoalState::SUCCEEDED;
         }
