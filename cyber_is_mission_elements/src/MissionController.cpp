@@ -32,7 +32,6 @@ void MissionController::stateCallback(const std_msgs::String::ConstPtr &msg)  {
         ROS_INFO("START_MISSION received. Starting searching start pose.");
     }else if (msg->data == "FOUNDED_START_POSE") {
         mission_element_.emplace<SearchOrientation>(nh_, state_topic_, odom_topic_, line_detector_topic_, wall_topic_);
-
         ROS_INFO("FOUNDED_START_POSE received. Starting search orientation");
 
     }else if (msg->data == "FOUNDED_ORIENTATION") {

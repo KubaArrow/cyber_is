@@ -89,10 +89,12 @@ bool SearchOrientation::waitForResult() const {
         if (full_line_detected_) {
             ROS_WARN("[SearchOrientation] FULL_LINE detected → cancel current goal");
 
-            return false;
+           // return false;
+            break;
         }
         if (ac_.getState().isDone()) {
-            return !(ac_.getState() == actionlib::SimpleClientGoalState::SUCCEEDED);
+            break;
+          //  return !(ac_.getState() == actionlib::SimpleClientGoalState::SUCCEEDED);
         }
 
 
