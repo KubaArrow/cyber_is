@@ -91,6 +91,9 @@ bool SearchOrientation::waitForResult() const {
 
             return false;
         }
+        if (ac_.getState().isDone()) {
+            return !ac_.getState() == actionlib::SimpleClientGoalState::SUCCEEDED;
+        }
 
 
         ros::spinOnce();
