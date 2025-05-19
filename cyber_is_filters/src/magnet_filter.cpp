@@ -20,7 +20,6 @@ MagnetFilter::MagnetFilter(ros::NodeHandle& nh, const std::string& topic_name)
 void MagnetFilter::callback(const std_msgs::Float64MultiArray::ConstPtr& msg)
 {
     std_msgs::Bool result;
-    ROS_INFO("MagnetFilter: received message with %lu elements", msg->data.size());
     // Upewnij się, że wiadomość zawiera co najmniej 3 elementy
     if (msg->data.size() >= 3)
     {

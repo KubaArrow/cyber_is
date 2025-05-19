@@ -26,8 +26,8 @@
         <!--ORIENTATION-->
         <param name="start_position" value="bottom"/>
         <param name="turn_left" value="true"/>
-        <param name="move_front" value="0.25"/>
-        <param name="move_side" value="0.20"/>
+        <param name="move_front" value="0.30"/>
+        <param name="move_side" value="0.50"/>
 
         <!--CAGE-->
         <param name="cage_height" value="2.50"/>

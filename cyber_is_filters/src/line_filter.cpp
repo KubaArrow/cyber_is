@@ -42,7 +42,6 @@ void LineFilter::callback(const std_msgs::UInt16MultiArray::ConstPtr& msg)
     std_msgs::String status;
     std::vector<int8_t> signedData(result.data.begin(), result.data.end());
     status.data = interpretPosition(signedData);
-    ROS_INFO_STREAM("Detected line position: " << status.data);
     pos_pub_.publish(status);
     pub_.publish(result);
 
