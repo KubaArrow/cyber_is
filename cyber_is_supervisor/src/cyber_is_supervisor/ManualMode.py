@@ -27,10 +27,8 @@ class ManualMode:
             )
             # Start monitoring in a background thread
             self.running = True
-            self.monitor_thread = threading.Thread(target=self.monitor_process)
-            self.monitor_thread.daemon = True
-            self.monitor_thread.start()
-            rospy.sleep(3)
+
+            rospy.sleep(7)
             self.leds_publisher.publish("SIDE_GREEN")
             self.publisher.publish("READY_MANUAL_MODE")
 
@@ -43,19 +41,4 @@ class ManualMode:
             self.process.wait()
             self.publisher.publish("STOP_MANUAL_MODE")
 
-    def monitor_process(self):
-        while self.running:
-            time.sleep(2)
-            if self.process and self.process.poll() is not None:
-                if self.shutdown_requested:
-                    rospy.loginfo("Manual mode terminated by user request.")
-                else:
-                    rospy.logerr("Manual mode process crashed.")
-                    self.publisher.publish("ERROR_MANUAL_MODE")
 
-                    # restart only if it wasn't shut down manually
-                    time.sleep(3)
-                    rospy.loginfo("Restarting manual mode...")
-                    self.start_mode()
-                self.running = False
-                break
