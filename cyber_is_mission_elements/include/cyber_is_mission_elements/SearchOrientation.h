@@ -44,6 +44,8 @@ private:
 
     bool search_active_ = false;
     bool full_line_detected_ = false;
+    bool founded_orientation_ = false;
+
 
     void executeSequence();
 

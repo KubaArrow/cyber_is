@@ -110,27 +110,35 @@ bool SearchOrientation::waitForResult() const {
 
 
 bool SearchOrientation::waitForResultWithAbordOnDone() const {
-
     ros::Rate r(20);
     while (ros::ok()) {
         if (full_line_detected_) {
             ROS_WARN("[SearchOrientation] FULL_LINE detected → cancel current goal");
-
-            return false;
+            return false;  // i tak misja zakończona przez callback
         }
 
         if (ac_.getState().isDone()) {
-            ROS_WARN("[SearchOrientation] Move vase done -> cancel mission");
+            // jeśli success, jest OK
+            if (ac_.getState() == actionlib::SimpleClientGoalState::SUCCEEDED) {
+                return true;
+            }
+            // <<<--- to jest kluczowe!
+            // jeśli wykryto linię (sukces alternatywny), NIE abortuj
+            if (founded_orientation_) {
+                ROS_INFO("[SearchOrientation] Mission ended by line detection – no abort");
+                return false; // return false, ale NIE abortuj!
+            }
+            // jeśli nie success i nie przez linię — ABORT
+            ROS_WARN("[SearchOrientation] Move base failed -> cancel mission");
             publishAbort();
-            return ac_.getState() == actionlib::SimpleClientGoalState::SUCCEEDED;
+            return false;
         }
-
-
         ros::spinOnce();
         r.sleep();
     }
     return false;
 }
+
 
 
 // ————————————————————————————————————————— callbacks ————————————————————————————————————————————
@@ -146,9 +154,13 @@ void SearchOrientation::lineCallback(const std_msgs::String::ConstPtr &msg) {
         if (!waitForResult()) return;
         make_walls();
 
-        publishState( "FOUNDED_ORIENTATION");
+        publishState("FOUNDED_ORIENTATION");
+
+        // <<<--- to jest kluczowe!
+        founded_orientation_ = true;
     }
 }
+
 
 static geometry_msgs::Point makePoint(double x, double y, double z = 0.0) {
     geometry_msgs::Point p;
