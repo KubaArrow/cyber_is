@@ -3,7 +3,7 @@ raytrace_range: 3.0
 robot_radius: 0.08
 
 
-inflation_radius: 0.4
+inflation_radius: 0.2
 cost_scaling_factor: 5.0
 
 transform_tolerance: 1.0  # wcześniej miałeś 0.5 lub 0.8
