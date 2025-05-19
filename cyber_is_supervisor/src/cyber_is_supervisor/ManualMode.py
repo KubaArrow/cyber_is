@@ -8,7 +8,7 @@ class ManualMode:
 
     def __init__(self):
         self.process = None
-        self.publisher = rospy.Publisher("/robot_state", String, queue_size=10)
+        self.publisher = rospy.Publisher("/robot_state", String, queue_size=10, latch=True)
         self.leds_publisher = rospy.Publisher("/leds_mode", String, queue_size=10)
         self.monitor_thread = None
         self.running = False

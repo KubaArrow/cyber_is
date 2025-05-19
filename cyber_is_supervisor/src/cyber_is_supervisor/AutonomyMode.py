@@ -12,7 +12,7 @@ class AutonomyMode:
         self.state = ""
         self.process = None
         self.robot_state_sub = rospy.Subscriber("/robot_state", String, self.callback)
-        self.state_publisher = rospy.Publisher("/robot_state", String, queue_size=10)
+        self.state_publisher = rospy.Publisher("/robot_state", String, queue_size=10, latch=True)
         self.leds_publisher = rospy.Publisher("/leds_mode", String, queue_size=10)
         self.cmd_publisher = rospy.Publisher("/cmd_vel", Twist, queue_size=10)
         self.running = False
