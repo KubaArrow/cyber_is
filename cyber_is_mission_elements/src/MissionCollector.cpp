@@ -8,7 +8,7 @@
 
 MissionCollector::MissionCollector(ros::NodeHandle &nh): nh_(nh) {
     nh_.param<std::string>("/mission/odom_topic", odom_topic_, "/odom");
-    nh_.param<std::string>("/mission/battery_topic", battery_topic_, "/battery_state");
+    nh_.param<std::string>("/mission/battery_topic", battery_topic_, "/battery");
 
     nh_.param<std::string>("/mission/duration_topic", duration_topic_, "/mission_duration");
     nh_.param<std::string>("/mission/length_topic", length_topic_, "/mission_length");
@@ -56,10 +56,13 @@ void MissionCollector::odomCallback(const nav_msgs::Odometry::ConstPtr& msg) {
 
     const double dx = pos.x - last_position_.x;
     const double dy = pos.y - last_position_.y;
-    const double dz = pos.z - last_position_.z;
 
-    mission_length_ += std::sqrt(dx*dx + dy*dy + dz*dz);
-    last_position_ = pos;
+    const double dist = std::sqrt(dx*dx + dy*dy);
+    if (dist > 0.05) {
+       mission_length_ += std::sqrt(dx*dx + dy*dy);
+       last_position_ = pos;
+     }
+
 }
 
 void MissionCollector::batteryCallback(const sensor_msgs::BatteryState::ConstPtr& msg) {
@@ -88,6 +91,6 @@ void MissionCollector::timerCallback(const ros::TimerEvent&) {
     length_pub_.publish(length_msg);
 
     std_msgs::Float32 energy_msg;
-    energy_msg.data = std::max(0.0, start_charge_ - last_charge_);  // unikamy ujemnych przez pomyłki
+    energy_msg.data = std::max(0.0, last_charge_-start_charge_ );  // unikamy ujemnych przez pomyłki
     energy_pub_.publish(energy_msg);
 }
