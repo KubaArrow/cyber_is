@@ -39,7 +39,7 @@ void MissionController::stateCallback(const std_msgs::String::ConstPtr &msg)  {
 
         ROS_INFO("FOUNDED_ORIENTATION received. Starting go to zone");
     }else if (msg->data == "FOUNDED_ZONE") {
-        mission_element_.emplace<SearchMeta>(nh_, state_topic_, line_detector_topic_, odom_topic_ );
+        mission_element_.emplace<SearchMeta>(nh_, state_topic_, line_detector_topic_, odom_topic_, wall_topic_ );
         ROS_INFO("FOUNDED_ZONE received. Starting search meta");
     }else if (msg->data == "FOUNDED_FINISH") {
         m_coll_.stopCollecting();

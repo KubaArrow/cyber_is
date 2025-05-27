@@ -18,7 +18,7 @@
 
 class SearchMeta   {
 public:
-    explicit SearchMeta(ros::NodeHandle &nh, const std::string &state_topic, const std::string &line_detector_topic, const std::string &odom_topic);
+    explicit SearchMeta(ros::NodeHandle &nh, const std::string &state_topic, const std::string &line_detector_topic, const std::string &odom_topic, const std::string &wall_topic);
 
 private:
     ros::NodeHandle nh_;
@@ -26,9 +26,9 @@ private:
     std::vector<Point> points_;
 
     actionlib::SimpleActionClient<move_base_msgs::MoveBaseAction> ac_;
-    std::string state_topic_, line_detector_topic_, magnet_topic_, odom_topic_;
+    std::string state_topic_, line_detector_topic_, magnet_topic_, odom_topic_, wall_topic_;
     ros::Subscriber line_sub_, magnet_sub_, odom_sub_;
-    ros::Publisher state_pub_;
+    ros::Publisher state_pub_, wall_pub_;
     geometry_msgs::Pose current_pose_;
 
     bool search_active_ = false;

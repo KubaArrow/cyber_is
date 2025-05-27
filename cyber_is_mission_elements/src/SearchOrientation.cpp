@@ -176,6 +176,7 @@ void SearchOrientation::make_walls() {
     nh_.getParam("/orientation_pose/x", orient.x);
     nh_.getParam("/orientation_pose/y", orient.y);
 
+
     // 1. Wyznacz cornerPoint jak wcześniej
     if (wall_start_ == "bottom" || wall_start_ == "top") {
         cornerPoint.x = start.x;
@@ -184,6 +185,8 @@ void SearchOrientation::make_walls() {
         cornerPoint.x = orient.x;
         cornerPoint.y = start.y;
     }
+    nh_.setParam("/corner_pose/x", cornerPoint.x);
+    nh_.setParam("/corner_pose/y", cornerPoint.y);
 
     // 2. Kierunki osi klatki (jednostkowe)
     geometry_msgs::Point vecRight, vecUp;

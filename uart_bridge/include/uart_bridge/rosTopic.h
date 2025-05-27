@@ -104,7 +104,7 @@ typedef struct
 typedef struct
 {
 	uint8_t msgID;
-	Color_t leds[12];
+	Color_t leds[23];
 }LEDMsg_t;
 
 typedef struct

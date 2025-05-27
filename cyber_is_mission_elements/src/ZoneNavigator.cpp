@@ -151,78 +151,102 @@ geometry_msgs::Quaternion ZoneNavigator::yawToQuaternion(double yaw) {
 //     }
 // }
 
-void ZoneNavigator::sendGoalAndWait() {
+void ZoneNavigator::sendGoalAndWait()
+{
     if (points_.size() != 4) {
         ROS_ERROR("[ZoneNavigator] Zone must have exactly 4 points!");
         publishAbort();
         return;
     }
 
+    //--------------------------------------------
+    // 1. Pobranie narożnika z parametrów
+    //--------------------------------------------
+    double corner_x = 0.0, corner_y = 0.0;
+    bool have_corner =
+        nh_.getParam("/corner_pose/x", corner_x) &&
+        nh_.getParam("/corner_pose/y", corner_y);
+
+    if (have_corner) {
+        ROS_INFO_STREAM("[ZoneNavigator] corner_pose = (" << corner_x
+                        << ", " << corner_y << ")");
+    } else {
+        ROS_WARN("[ZoneNavigator] corner_pose param not found – "
+                 "using zone points as-is");
+    }
+
+    //--------------------------------------------
+    // 2. Geometria strefy
+    //--------------------------------------------
     std::vector<EdgeCenter> edge_centers;
     std::pair<double, double> centroid;
     computeCentersAndCentroid(edge_centers, centroid);
 
-    // Domyślnie bierzemy centroid
+    // jeżeli mamy narożnik – przesuwamy całą geometrię o (corner_x , corner_y)
+    if (have_corner) {
+        for (auto &ec : edge_centers) {
+            ec.x += corner_x;
+            ec.y += corner_y;
+        }
+        centroid.first  += corner_x;
+        centroid.second += corner_y;
+    }
+
+    //--------------------------------------------
+    // 3. Wybór punktu docelowego
+    //--------------------------------------------
     double target_x = centroid.first;
     double target_y = centroid.second;
 
     if (final_orientation_ == "right") {
-        // Szukamy środka krawędzi o największym y
         size_t idx = 0;
         double max_y = edge_centers[0].y;
         for (size_t i = 1; i < edge_centers.size(); ++i)
-            if (edge_centers[i].y > max_y) {
-                max_y = edge_centers[i].y;
-                idx = i;
-            }
+            if (edge_centers[i].y > max_y) { max_y = edge_centers[i].y; idx = i; }
         target_x = edge_centers[idx].x;
         target_y = edge_centers[idx].y;
+
     } else if (final_orientation_ == "top") {
-        // Szukamy środka krawędzi o największym x
         size_t idx = 0;
         double max_x = edge_centers[0].x;
         for (size_t i = 1; i < edge_centers.size(); ++i)
-            if (edge_centers[i].x > max_x) {
-                max_x = edge_centers[i].x;
-                idx = i;
-            }
+            if (edge_centers[i].x > max_x) { max_x = edge_centers[i].x; idx = i; }
         target_x = edge_centers[idx].x;
         target_y = edge_centers[idx].y;
+
     } else if (final_orientation_ == "left") {
-        // Szukamy środka krawędzi o najmniejszym y
         size_t idx = 0;
         double min_y = edge_centers[0].y;
         for (size_t i = 1; i < edge_centers.size(); ++i)
-            if (edge_centers[i].y < min_y) {
-                min_y = edge_centers[i].y;
-                idx = i;
-            }
+            if (edge_centers[i].y < min_y) { min_y = edge_centers[i].y; idx = i; }
         target_x = edge_centers[idx].x;
         target_y = edge_centers[idx].y;
+
     } else if (final_orientation_ == "bottom") {
-        // Szukamy środka krawędzi o najmniejszym x
         size_t idx = 0;
         double min_x = edge_centers[0].x;
         for (size_t i = 1; i < edge_centers.size(); ++i)
-            if (edge_centers[i].x < min_x) {
-                min_x = edge_centers[i].x;
-                idx = i;
-            }
+            if (edge_centers[i].x < min_x) { min_x = edge_centers[i].x; idx = i; }
         target_x = edge_centers[idx].x;
         target_y = edge_centers[idx].y;
-    } else {
-        target_x = centroid.first;
-        target_y = centroid.second;
     }
 
-    // Teraz kierunek: od wybranego środka do centroidu
-    double yaw = std::atan2(centroid.second - target_y, centroid.first - target_x);
+    //--------------------------------------------
+    // 4. Kierunek – od punktu docelowego do CENTROIDU
+    //    (lub do innego punktu odniesienia, jeżeli tak wolisz)
+    //--------------------------------------------
+    double yaw = std::atan2(centroid.second - target_y,
+                            centroid.first  - target_x);
 
-    ROS_INFO_STREAM("[ZoneNavigator] target=(" << target_x << ", " << target_y << ") yaw=" << yaw);
+    ROS_INFO_STREAM("[ZoneNavigator] target=(" << target_x << ", "
+                    << target_y << ")  yaw=" << yaw);
 
+    //--------------------------------------------
+    // 5. Wysyłanie celu do move_base
+    //--------------------------------------------
     move_base_msgs::MoveBaseGoal goal;
     goal.target_pose.header.frame_id = "map";
-    goal.target_pose.header.stamp = ros::Time::now();
+    goal.target_pose.header.stamp    = ros::Time::now();
     goal.target_pose.pose.position.x = target_x;
     goal.target_pose.pose.position.y = target_y;
     goal.target_pose.pose.position.z = 0.0;
@@ -240,13 +264,14 @@ void ZoneNavigator::sendGoalAndWait() {
 
     auto state = ac_.getState();
     if (state == actionlib::SimpleClientGoalState::SUCCEEDED) {
-        ROS_INFO("[ZoneNavigator] Robot reached selected edge/centroid – success");
+        ROS_INFO("[ZoneNavigator] Robot reached selected point – success");
         publishState("FOUNDED_ZONE");
     } else {
         ROS_ERROR_STREAM("[ZoneNavigator] Navigation failed: " << state.toString());
         publishAbort();
     }
 }
+
 
 
 void ZoneNavigator::publishAbort() const { publishState("ABORT_MISSION"); }

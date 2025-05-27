@@ -9,16 +9,19 @@
 #include <cmath>
 #include <algorithm>
 #include <limits>
+#include <virtual_costmap_layer/Obstacles.h>
 
 SearchMeta::SearchMeta(
     ros::NodeHandle &nh,
     const std::string &state_topic,
     const std::string &line_detector_topic,
-    const std::string &odom_topic)
+    const std::string &odom_topic,
+    const std::string &wall_topic)
     : nh_(nh),
       ac_("move_base", true),
       state_topic_(state_topic),
       odom_topic_(odom_topic),
+	  wall_topic_(wall_topic),
       line_detector_topic_(line_detector_topic) {
     XmlRpc::XmlRpcValue pts_param;
     if (!nh.getParam("/mission/zone_points", pts_param) || pts_param.getType() != XmlRpc::XmlRpcValue::TypeArray ||
@@ -57,6 +60,10 @@ SearchMeta::SearchMeta(
         return;
     }
     ROS_INFO("[SearchMeta] Move_base connected");
+
+	virtual_costmap_layer::Obstacles msg;
+	wall_pub_ = nh_.advertise<virtual_costmap_layer::Obstacles>(wall_topic_, 1);
+    wall_pub_.publish(msg);
 
     if (mode_ == "line") {
         executeLineSequence();
