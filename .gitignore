@@ -9,3 +9,4 @@ cyber_is_manual_controller/mjpg-streamer/
 /cyber_is_supervisor/.idea/
 /cyber_is_mission_elements/cmake-build-debug/
 /cyber_is_mission_elements/.idea/
+/cyber_is_led_controller_v2/.idea/

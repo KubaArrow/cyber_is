@@ -1,5 +1,16 @@
 <launch>
 
+    <arg name="p0x" default="-0.50" /> <arg name="p0y" default="0.25" />
+    <arg name="p1x" default="1.75" /> <arg name="p1y" default="0.25" />
+    <arg name="p2x" default="1.75" /> <arg name="p2y" default="0.75" />
+    <arg name="p3x" default="-0.50" /> <arg name="p3y" default="0.75" />
+
+    <rosparam param="/mission/zone_points" subst_value="true">
+        - [$(arg p0x), $(arg p0y)]
+        - [$(arg p1x), $(arg p1y)]
+        - [$(arg p2x), $(arg p2y)]
+        - [$(arg p3x), $(arg p3y)]
+    </rosparam>
 
 
     <node name="mission" pkg="cyber_is_mission_elements" type="mission_controller_node" output="screen">
@@ -21,14 +32,18 @@
 
         <!--ORIENTATION-->
         <param name="start_position" value="bottom"/>
+        <param name="turn_left" value="true"/>
         <param name="move_front" value="0.45"/>
+        <param name="move_side" value="0.50"/>
 
         <!--CAGE-->
+        <param name="cage_height" value="2.50"/>
+        <param name="cage_width" value="2.50"/>
         <param name="cage_size" value="0.20"/>
         <param name="cage_move" value="0.40"/>
 
         <!--ZONE-->
-
+        <param name="final_orientation" value="right"/>
 
         <!--SEARCH META -->
         <param name="mode" value="line"/>

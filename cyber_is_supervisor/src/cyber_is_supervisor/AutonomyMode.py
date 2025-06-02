@@ -31,6 +31,10 @@ class AutonomyMode:
             self.abort_mission()
         elif self.state == "RESTART_MISSION":
             self.restart_mission()
+        elif self.state=="START_MISSION":
+            self.leds_publisher.publish("FRONT_KITT_BLUE")
+            self.leds_publisher.publish("SIDE_BLUE_WAVE")
+
 
 
     def start_mode(self):
@@ -48,13 +52,13 @@ class AutonomyMode:
 
 
     def prepare_mission(self):
-        self.leds_publisher.publish("FRONT_MIN")
-        self.leds_publisher.publish("SIDE_BLUE_STROBE")
+        self.leds_publisher.publish("FRONT_BLUE_BREATH")
+        self.leds_publisher.publish("SIDE_BLUE_LOAD")
         self.navigation_process = subprocess.Popen(['roslaunch', 'cyber_is_navigation', 'start_navigation.launch'])
         self.filters_process = subprocess.Popen(['roslaunch', 'cyber_is_filters', 'start_filters.launch'])
         self.mission_process = subprocess.Popen(['roslaunch', 'cyber_is_mission_elements', 'mission.launch'])
         rospy.sleep(10)
-        self.leds_publisher.publish("SIDE_BLUE")
+        self.leds_publisher.publish("SIDE_BLUE_100")
 
     def destroy_mission(self):
         self.running = False
@@ -81,13 +85,14 @@ class AutonomyMode:
 
     def abort_mission(self):
         rospy.loginfo("Aborting mission...")
-        self.leds_publisher.publish("SIDE_RED")
+        self.leds_publisher.publish("SIDE_RED_HAZARD")
+        self.leds_publisher.publish("FRONT_RED_SOS")
         self.state_publisher.publish("ABORTED_MISSION")
         self.destroy_mission()
         self.cmd_publisher.publish(Twist())
         self.state_publisher.publish("STOPPED_ROBOT")
         self.state_publisher.publish("WAITING_FOR_RESTART")
-        self.leds_publisher.publish("SIDE_RED_STROBE")
+        self.leds_publisher.publish("SIDE_RED_100")
         rospy.loginfo("Aborted mission")
 
     def restart_mission(self):

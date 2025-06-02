@@ -2,7 +2,7 @@
     <include file="$(find rosbridge_server)/launch/rosbridge_websocket.launch"/>
     <include file="$(find ldlidar_sl_ros)/launch/ld14p.launch"/>
     <include file="$(find uart_bridge)/launch/start_bridge.launch"/>
-    <include file="$(find cyber_is_led_controller)/launch/start_leds.launch" />
+    <include file="$(find cyber_is_led_controller_v2)/launch/start_leds.launch" />
     <include file="$(find cyber_is_supervisor)/launch/start_supervisor.launch" />
 </launch>
 

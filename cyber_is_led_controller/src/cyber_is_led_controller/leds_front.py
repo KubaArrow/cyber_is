@@ -32,7 +32,7 @@ class Front:
         return (data*self.leds_count)
     
     def front_min(self):
-        data = [255,255,255,25]
+        data = [255,255,255,50]
         return (data*self.leds_count)
     
     def front_off(self):

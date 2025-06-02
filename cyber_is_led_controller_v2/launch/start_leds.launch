@@ -1,10 +1,9 @@
 <launch>
-    <node name="led_controller" pkg="cyber_is_led_controller" type="leds_node.py" output="screen">
+    <node name="led_controller" pkg="cyber_is_led_controller_v2" type="leds_node.py" output="screen">
         <param name="leds_topic" value="/leds"/>
         <param name="state_topic" value="/leds_mode"/>
         <param name="side_leds" value="9"/>
         <param name="front_leds" value="5"/>
-        <param name="back_leds" value="0"/>
         <param name="frequency" value="12"/>
     </node>
 </launch>

@@ -14,9 +14,9 @@ def main():
 
     rospy.init_node("leds_controller", anonymous=True)
 
-    leds_topic = rospy.get_param("leds_topic", "/leds")
-    freq = rospy.get_param("frequency", 30)
-    state_topic = rospy.get_param("leds_topic", "/leds_mode")
+    leds_topic = rospy.get_param("/led_controller/leds_topic", "/leds")
+    freq = rospy.get_param("/led_controller/frequency", 12)
+    state_topic = rospy.get_param("/led_controller/leds_topic", "/leds_mode")
 
     leds_pub = rospy.Publisher(leds_topic, UInt8MultiArray, queue_size=10)
     leds_mode_sub=rospy.Subscriber(state_topic, String, callback)
