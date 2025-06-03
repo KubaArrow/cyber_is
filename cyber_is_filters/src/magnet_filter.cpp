@@ -23,19 +23,8 @@ void MagnetFilter::callback(const std_msgs::Float64MultiArray::ConstPtr& msg)
     // Upewnij się, że wiadomość zawiera co najmniej 3 elementy
     if (msg->data.size() >= 3)
     {
-        double val1 = abs(msg->data[0]);
-        double val2 = abs(msg->data[1]);
-        double val3 = abs(msg->data[2]);
+        double val = sqrt((msg->data[0]*msg->data[0]) +(msg->data[1]*msg->data[1]) + (msg->data[2]*msg->data[2]));
 
-        double val = 0;
-
-        if (val1 > val2 && val1 > val3){
-            val=val1;
-        }else if (val2 > val1 && val2 > val3){
-            val=val2;
-        }else{
-            val=val3;
-        }
         if (val >= min_ && (val <= max_ || !max_limit_))
         {
             result.data = true;
