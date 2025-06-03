@@ -1,12 +1,11 @@
 <launch>
 
 
-    <node pkg="robot_localization"
-          type="ukf_localization_node"
-          name="ukf_localization_node"
+    <node pkg="robot_localization" type="ukf_localization_node"
+          name="ukf_localization_node" clear_params="true"
           output="screen">
         <param name="use_sim_time" value="false"/>
-        <rosparam file="$(find cyber_is_navigation)/config/ukf_localization.yaml" command="load" />
-
+        <rosparam file="$(find twój_pakiet)/config/ukf_localization.yaml" command="load" />
     </node>
+
 </launch>
