@@ -8,7 +8,7 @@
     </node>
 
     <!-- Dodaj reset po 3 sekundach -->
-    <node pkg="rosbash" type="rosbash" name="reset_ukf" args="-c 'sleep 3 && rosservice call /ukf_localization_node/reset_filter'"/>
+    <node pkg="rosbash" type="rosbash" name="reset_ukf" args="-c 'rosservice call /ukf_localization_node/reset_filter'"/>
 
 
 </launch>
