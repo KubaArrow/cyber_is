@@ -156,7 +156,9 @@ class FrontLedsController:
     def __repr__(self):return f"FrontLedsController({self.n} LED, {self._mode.name})"
 
 class Front:
-    def __init__(self,n:int):self.ctrl=FrontLedsController(n)
+    def __init__(self,n:int):
+        self.ctrl=FrontLedsController(n)
+        self.ctrl.set_mode("FRONT_WHITE_25")
     def set_mode(self,m:str):self.ctrl.set_mode(m)
     def animation_tick(self):self.ctrl.animation_tick()
     def get_leds_rgba(self):return self.ctrl.get_leds_rgba()

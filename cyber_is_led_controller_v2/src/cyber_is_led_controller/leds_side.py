@@ -20,7 +20,7 @@ Side‑LED controller for Cyber‑IS robot (v2)
 **Przykładowe polecenia bash**  (publikacja na topic `/leds_mode`)
 ```
 # fala zielona
-rostopic pub -1 /leds_mode std_msgs/String "data: 'SIDE_GREEN_WAVE'"
+rostopic pub -1 /leds_mode std_msgs/String "data: 'SIDE_BLUE_WAVE'"
 
 # losowe błyski pomarańczowe
 rostopic pub -1 /leds_mode std_msgs/String "data: 'SIDE_ORANGE_CHAOS'"
@@ -156,7 +156,7 @@ class Side:
         self.n, self.is_left = num_leds, is_left
         self._leds: List[RGB] = [(0, 0, 0)] * num_leds
         self._anim: Optional[object] = None
-        self.set_mode("SIDE_RED_100")
+        self.set_mode("SIDE_GREEN_50")
 
     # -------------------------------------------------------------- set_mode --
     def set_mode(self, mode: str) -> None:
