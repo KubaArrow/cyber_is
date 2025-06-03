@@ -24,7 +24,7 @@ void MagnetFilter::callback(const std_msgs::Float64MultiArray::ConstPtr& msg)
     if (msg->data.size() >= 3)
     {
         double val = sqrt((msg->data[0]*msg->data[0]) +(msg->data[1]*msg->data[1]) + (msg->data[2]*msg->data[2]));
-
+        ROS_INFO("LineFilter value: %lf",val);
         if (val >= min_ && (val <= max_ || !max_limit_))
         {
             result.data = true;
