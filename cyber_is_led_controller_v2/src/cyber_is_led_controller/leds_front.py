@@ -152,7 +152,7 @@ class FrontLedsController:
     def animation_tick(self):
         if self._anim: self._leds=self._anim.next_frame()
     def get_leds(self):return list(self._leds)
-    def get_leds_rgba(self):return [b for (r,g,b) in self._leds for b in (r,g,b,0)]
+    def get_leds_rgba(self):return [b for (r,g,b) in self._leds for b in (r,g,b,255)]
     def __repr__(self):return f"FrontLedsController({self.n} LED, {self._mode.name})"
 
 class Front:

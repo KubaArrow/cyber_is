@@ -207,7 +207,7 @@ class Side:
     # -------------------------------------------------------------- publish --
     def get_leds_rgba(self) -> List[int]:
         arr = self._leds if self.is_left else list(reversed(self._leds))
-        return [byte for (r, g, b) in arr for byte in (r, g, b, 0)]
+        return [byte for (r, g, b) in arr for byte in (r, g, b, 255)]
 
     def __repr__(self):
         return f"<Side {'LEFT' if self.is_left else 'RIGHT'}, {self.n} LED-ów>"

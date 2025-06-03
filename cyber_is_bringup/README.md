@@ -41,14 +41,11 @@ ExecStart=/opt/ros/noetic/bin/roscore
 Restart=on-failure
 User=pi
 Environment=DISPLAY=:0
-Environment=ROS_IP=192.168.1.26
-Environment=ROS_MASTER_URI=http://192.168.1.26:11311
+Environment=ROS_IP=192.168.1.11
+Environment=ROS_MASTER_URI=http://192.168.1.11:11311
 
 [Install]
 WantedBy=multi-user.target
-
-
-
 ```
 
 ```bash
@@ -66,8 +63,8 @@ ExecStart=/home/pi/catkin_ws/src/cyber_is/cyber_is_bringup/bash/setup_robot.sh
 Restart=on-failure
 User=pi
 Environment=DISPLAY=:0
-Environment=ROS_IP=192.168.1.26
-Environment=ROS_MASTER_URI=http://192.168.1.26:11311
+Environment=ROS_IP=192.168.1.11
+Environment=ROS_MASTER_URI=http://192.168.1.11:11311
 
 [Install]
 WantedBy=multi-user.target

@@ -39,7 +39,7 @@ void ledsCallback(const std_msgs::UInt8MultiArray::ConstPtr &msg) {
     LEDMsg_t packet = {0};
     packet.msgID = LED_MSG;
 
-    for (size_t i = 0; i < 23; i++) {
+    for (size_t i = 0; i < 23rost; i++) {
         size_t base = i * 4;
         packet.leds[i].R = msg->data[base];
         packet.leds[i].G = msg->data[base + 1];
