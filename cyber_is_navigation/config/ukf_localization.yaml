@@ -1,6 +1,7 @@
 frequency: 6
 sensor_timeout: 0.2
 two_d_mode: true
+reset_on_time_jump: true
 
 # Odometry
 odom0: /low_level_odom
