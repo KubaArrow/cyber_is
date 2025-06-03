@@ -12,7 +12,7 @@
     <node name="magnet_filter" pkg="cyber_is_filters" type="magnet_filter" output="screen">
         <param name="magnet_detector_topic" value="/magnet"/>
         <param name="max_limit" value="false"/>
-        <param name="min_value" value="8000"/>
+        <param name="min_value" value="5000"/>
         <param name="max_value" value="3500"/>
     </node>
 </launch>
