@@ -10,3 +10,8 @@ cyber_is_manual_controller/mjpg-streamer/
 /cyber_is_mission_elements/cmake-build-debug/
 /cyber_is_mission_elements/.idea/
 /cyber_is_led_controller_v2/.idea/
+cyber_is_led_controller_v2/src/cyber_is_led_controller/__pycache__/leds_controller.cpython-38.pyc
+cyber_is_led_controller_v2/src/cyber_is_led_controller/__pycache__/leds_front.cpython-38.pyc
+cyber_is_led_controller_v2/src/cyber_is_led_controller/__pycache__/leds_side.cpython-38.pyc
+cyber_is_supervisor/src/cyber_is_supervisor/__pycache__/AutonomyMode.cpython-38.pyc
+cyber_is_supervisor/src/cyber_is_supervisor/__pycache__/ManualMode.cpython-38.pyc

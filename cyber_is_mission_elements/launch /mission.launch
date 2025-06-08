@@ -25,7 +25,7 @@
 
         <!--CAGE-->
         <param name="cage_size" value="0.20"/>
-        <param name="cage_move" value="0.40"/>
+        <param name="cage_move" value="0.20"/>
 
         <!--ZONE-->
 
