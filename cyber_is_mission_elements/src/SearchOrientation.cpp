@@ -150,7 +150,7 @@ void SearchOrientation::lineCallback(const std_msgs::String::ConstPtr &msg) {
 
         ROS_INFO("[SearchOrientation] FULL_LINE detected → stop & build virtual wall");
         odom_sub_.shutdown();
-        sendRelativeGoal(-move_side_*0.7, 0.0, 0.0);
+        sendRelativeGoal(-0.5, 0.0, 0.0);
         if (!waitForResult()) return;
         make_walls();
 

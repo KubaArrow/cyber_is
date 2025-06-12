@@ -61,9 +61,11 @@ SearchMeta::SearchMeta(
     }
     ROS_INFO("[SearchMeta] Move_base connected");
 
-	virtual_costmap_layer::Obstacles msg;
-	wall_pub_ = nh_.advertise<virtual_costmap_layer::Obstacles>(wall_topic_, 1);
-    wall_pub_.publish(msg);
+    wall_pub_ = nh_.advertise<virtual_costmap_layer::Obstacles>(wall_topic_, 1, /*latch=*/true);
+
+    virtual_costmap_layer::Obstacles empty_msg;
+    wall_pub_.publish(empty_msg);
+    ros::spinOnce();
 
     if (mode_ == "line") {
         executeLineSequence();
@@ -89,79 +91,37 @@ bool SearchMeta::isInZone(double x, double y) {
 
 
 void SearchMeta::executeLineSequence() {
-    ROS_INFO("[SearchMeta] Starting executeLineSequence...");
+    ROS_INFO("[SearchMeta] Starting simple forward drive until line...");
     search_active_ = true;
     full_line_detected_ = false;
-    double travel_dist = step_; // np. 0.1–0.2 m
-    int max_steps = 100;
 
-    // 1. Jedź do przodu, aż wykryjesz linię lub opuścisz strefę
-    for (int i = 0; i < max_steps; ++i) {
+    // przygotuj publisher cmd_vel
+    ros::Publisher vel_pub = nh_.advertise<geometry_msgs::Twist>("cmd_vel", 1);
+
+    // ustaw stałą prędkość
+    geometry_msgs::Twist twist;
+    twist.linear.x = 0.1;  // np. 0.2 m/s
+    twist.angular.z = 0.0;
+
+    ros::Rate rate(20.0);   // 20 Hz
+
+    // jeździmy, aż wykryjemy linię lub rozmijemy się z ros::ok()
+    while (ros::ok() && !full_line_detected_) {
+        vel_pub.publish(twist);
         ros::spinOnce();
-        if (full_line_detected_) {
-            ROS_INFO("[SearchMeta] Line detected during forward drive.");
-            break;
-        }
-        // Sprawdź, czy następny krok mieści się w strefie
-        double theta = tf2::getYaw(current_pose_.orientation);
-        double next_x = current_pose_.position.x + travel_dist * cos(theta);
-        double next_y = current_pose_.position.y + travel_dist * sin(theta);
-        if (!isInZone(next_x, next_y)) {
-            ROS_INFO("[SearchMeta] Reached edge of zone during forward drive.");
-            break;
-        }
-        sendRelativeGoal(travel_dist, 0.0, 0.0);
-        if (!waitForResult()) break;
+        rate.sleep();
     }
 
-    // 2. Obrót o 90°
-    sendRelativeGoal(0.0, 0.0, M_PI_2);
-    if (!waitForResult()) return;
+    // zatrzymanie robota
+    twist.linear.x = 0.0;
+    vel_pub.publish(twist);
+    ros::spinOnce();
+    ROS_INFO("[SearchMeta] Line detected, forward drive stopped.");
 
-    // 3. Jedź do końca strefy w nowym kierunku
-    for (int i = 0; i < max_steps; ++i) {
-        ros::spinOnce();
-        if (full_line_detected_) {
-            ROS_INFO("[SearchMeta] Line detected during edge traverse.");
-            break;
-        }
-        double theta = tf2::getYaw(current_pose_.orientation);
-        double next_x = current_pose_.position.x + travel_dist * cos(theta);
-        double next_y = current_pose_.position.y + travel_dist * sin(theta);
-        if (!isInZone(next_x, next_y)) {
-            ROS_INFO("[SearchMeta] Reached edge of zone during edge traverse.");
-            break;
-        }
-        sendRelativeGoal(travel_dist, 0.0, 0.0);
-        if (!waitForResult()) break;
-    }
-
-    // 4. Obrót o 180°
-    sendRelativeGoal(0.0, 0.0, M_PI);
-    if (!waitForResult()) return;
-
-    // 5. Wracaj na drugi kraniec strefy
-    for (int i = 0; i < max_steps; ++i) {
-        ros::spinOnce();
-        if (full_line_detected_) {
-            ROS_INFO("[SearchMeta] Line detected during return.");
-            break;
-        }
-        double theta = tf2::getYaw(current_pose_.orientation);
-        double next_x = current_pose_.position.x + travel_dist * cos(theta);
-        double next_y = current_pose_.position.y + travel_dist * sin(theta);
-        if (!isInZone(next_x, next_y)) {
-            ROS_INFO("[SearchMeta] Reached opposite edge of zone during return.");
-            break;
-        }
-        sendRelativeGoal(travel_dist, 0.0, 0.0);
-        if (!waitForResult()) break;
-    }
-
-    // 6. Zakończ misję
-    ROS_INFO("[SearchMeta] Line sequence finished.");
+    // ewentualnie można tu dodać kolejne etapy (obroty, inne manewry)
     publishState("ZONE_SEARCHED_LINE");
 }
+
 
 
 
@@ -171,6 +131,7 @@ void SearchMeta::lineCallback(const std_msgs::String::ConstPtr &msg) {
 
     if (msg->data != "NO_LINE") {
         ac_.cancelAllGoals();
+        full_line_detected_=true;
         ROS_INFO("[SearchMeta] FULL_LINE detected");
     }
 }

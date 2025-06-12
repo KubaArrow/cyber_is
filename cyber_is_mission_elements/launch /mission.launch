@@ -25,14 +25,14 @@
 
         <!--CAGE-->
         <param name="cage_size" value="0.20"/>
-        <param name="cage_move" value="0.20"/>
+        <param name="cage_move" value="-0.10"/>
 
         <!--ZONE-->
 
 
         <!--SEARCH META -->
         <param name="mode" value="line"/>
-        <param name="step" value="0.25"/>
+        <param name="step" value="0.4"/>
 
 
 

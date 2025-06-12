@@ -34,6 +34,9 @@ class AutonomyMode:
         elif self.state=="START_MISSION":
             self.leds_publisher.publish("FRONT_KITT_BLUE")
             self.leds_publisher.publish("SIDE_BLUE_WAVE")
+        elif self.state=="FOUNDED_FINISH":
+            self.leds_publisher.publish("FRONT_BLUE_100")
+            self.leds_publisher.publish("SIDE_BLUE_100")
 
 
 
