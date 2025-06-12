@@ -1,15 +1,10 @@
+// SearchMeta.cpp
 #include "cyber_is_mission_elements/SearchMeta.h"
-
-#include <std_msgs/String.h>
+#include <xmlrpcpp/XmlRpcValue.h>
 #include <tf2/LinearMath/Quaternion.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
-#include <tf2/utils.h>
-#include <set>
-#include <vector>
-#include <cmath>
-#include <algorithm>
-#include <limits>
 #include <virtual_costmap_layer/Obstacles.h>
+#include <cmath>
 
 SearchMeta::SearchMeta(
     ros::NodeHandle &nh,
@@ -20,283 +15,195 @@ SearchMeta::SearchMeta(
     : nh_(nh),
       ac_("move_base", true),
       state_topic_(state_topic),
+      line_detector_topic_(line_detector_topic),
       odom_topic_(odom_topic),
-	  wall_topic_(wall_topic),
-      line_detector_topic_(line_detector_topic) {
-    XmlRpc::XmlRpcValue pts_param;
-    if (!nh.getParam("/mission/zone_points", pts_param) || pts_param.getType() != XmlRpc::XmlRpcValue::TypeArray ||
-        pts_param.
-        size() != 4) {
-        ROS_ERROR("[SearchMeta] Zone_points must be an array of four [x,y] lists");
+      wall_topic_(wall_topic) {
+    // Load zone corners
+    XmlRpc::XmlRpcValue zone_param;
+    if (!nh_.getParam("/mission/zone_points", zone_param) ||
+        zone_param.getType() != XmlRpc::XmlRpcValue::TypeArray ||
+        zone_param.size() != 4) {
+        ROS_ERROR("[SearchMeta] zone_points must be 4 [x,y] pairs");
         ros::shutdown();
         return;
     }
-    for (int i = 0; i < pts_param.size(); ++i) {
-        XmlRpc::XmlRpcValue pt = pts_param[i];
-        if (pt.getType() != XmlRpc::XmlRpcValue::TypeArray || pt.size() != 2) {
-            ROS_ERROR("[SearchMeta] Each point must be [x, y]");
-            ros::shutdown();
-            return;
-        }
-        double x = pt[0];
-        double y = pt[1];
-        points_.push_back({x, y});
+    for (int i = 0; i < zone_param.size(); ++i) {
+        auto &pt = zone_param[i];
+        points_.emplace_back((double)pt[0], (double)pt[1]);
     }
 
-    magnet_topic_ = nh_.param<std::string>("/mission/magnet_topic", "/magnet_filtered"); // new param
-    mode_ = nh_.param<std::string>("/mission/mode", "line"); // new param
-    step_ = nh_.param<double>("/mission/magnet_topic", 0.2); // new param
+    // Load sample points
+    XmlRpc::XmlRpcValue samples_param;
+    if (!nh_.getParam("/mission/samples_points", samples_param) ||
+        samples_param.getType() != XmlRpc::XmlRpcValue::TypeArray ||
+        samples_param.size() == 0) {
+        ROS_ERROR("[SearchMeta] samples_points must be a non-empty array");
+        ros::shutdown();
+        return;
+    }
+    for (int i = 0; i < samples_param.size(); ++i) {
+        auto &pt = samples_param[i];
+        samples_points_.emplace_back((double)pt[0], (double)pt[1]);
+    }
 
+    // Other params
+    magnet_topic_ = nh_.param<std::string>("/mission/magnet_topic", "/magnet_filtered");
+    mode_         = nh_.param<std::string>("/mission/search_mode", "sampling");
+    move_cage_    = nh_.param<double>("/mission/cage_move_search", 0.0);
+    final_orientation_ = nh_.param<std::string>("/mission/final_orientation", "none");
+
+    // Publishers & subscribers
     state_pub_ = nh_.advertise<std_msgs::String>(state_topic_, 1, true);
-    odom_sub_ = nh_.subscribe(odom_topic_, 1, &SearchMeta::odomCallback, this);
-    line_sub_ = nh_.subscribe(line_detector_topic_, 1, &SearchMeta::lineCallback, this);
-    magnet_sub_ = nh_.subscribe(magnet_topic_, 1, &SearchMeta::magnetCallback, this);
+    wall_pub_  = nh_.advertise<virtual_costmap_layer::Obstacles>(wall_topic_, 1, true);
+    vel_pub_   = nh_.advertise<geometry_msgs::Twist>("/cmd_vel", 1);
 
-    ROS_INFO("[SearchMeta] Waiting for move_base action server...");
+    odom_sub_  = nh_.subscribe(odom_topic_, 1, &SearchMeta::odomCallback, this);
+    line_sub_  = nh_.subscribe(line_detector_topic_, 1, &SearchMeta::lineCallback, this);
+    magnet_sub_= nh_.subscribe(magnet_topic_, 1, &SearchMeta::magnetCallback, this);
+
+    // Clear walls
+    virtual_costmap_layer::Obstacles empty;
+    wall_pub_.publish(empty);
+    ros::spinOnce();
+
+    ROS_INFO("[SearchMeta] Waiting for move_base server...");
     if (!ac_.waitForServer(ros::Duration(20.0))) {
-        ROS_ERROR("[SearchMeta] Move_base server not available – aborting mission");
-        publishAbort();
-        ros::shutdown();
-        return;
+        ROS_ERROR("[SearchMeta] move_base not available");
+        publishAbort(); ros::shutdown(); return;
     }
-    ROS_INFO("[SearchMeta] Move_base connected");
+    ROS_INFO("[SearchMeta] Connected to move_base");
 
-    wall_pub_ = nh_.advertise<virtual_costmap_layer::Obstacles>(wall_topic_, 1, /*latch=*/true);
-
-    virtual_costmap_layer::Obstacles empty_msg;
-    wall_pub_.publish(empty_msg);
-    ros::spinOnce();
-
-    if (mode_ == "line") {
-        executeLineSequence();
-    }else {
-        executeGridSequence();
-    }
-
-
+    // Start sequence
+    if (mode_ == "line") executeLineSequence();
+    else                 executeSamplingSequence();
 }
 
-bool SearchMeta::isInZone(double x, double y) {
-    // Prosty algorytm crossing number, działa dla dowolnego prostokąta
-    int nvert = points_.size();
-    int i, j, c = 0;
-    for (i = 0, j = nvert - 1; i < nvert; j = i++) {
-        if (((points_[i].second > y) != (points_[j].second > y)) &&
-            (x < (points_[j].first - points_[i].first) * (y - points_[i].second) /
-             (points_[j].second - points_[i].second) + points_[i].first))
-            c = !c;
-    }
-    return c;
-}
+void SearchMeta::executeSamplingSequence() {
+    ROS_INFO("[SearchMeta] Starting sampling sequence");
+    sampling_active_ = true;
+    ros::Rate rate(20.0);
 
+    std::vector<bool> visited(samples_points_.size(), false);
+    geometry_msgs::Pose start_pose;
+    bool any_reached = false;
 
-void SearchMeta::executeLineSequence() {
-    ROS_INFO("[SearchMeta] Starting simple forward drive until line...");
-    search_active_ = true;
-    full_line_detected_ = false;
+    // Iterate until all samples attempted or sampling deactivated
+    for (size_t i = 0; i < samples_points_.size() && sampling_active_; ++i) {
+        // pick nearest unvisited sample
+        size_t idx = findNearestSample(current_pose_, visited);
+        visited[idx] = true;
+        auto [sx, sy] = samples_points_[idx];
+        double yaw = yawFromFinalOrientation();
 
-    // przygotuj publisher cmd_vel
-    ros::Publisher vel_pub = nh_.advertise<geometry_msgs::Twist>("cmd_vel", 1);
-
-    // ustaw stałą prędkość
-    geometry_msgs::Twist twist;
-    twist.linear.x = 0.1;  // np. 0.2 m/s
-    twist.angular.z = 0.0;
-
-    ros::Rate rate(20.0);   // 20 Hz
-
-    // jeździmy, aż wykryjemy linię lub rozmijemy się z ros::ok()
-    while (ros::ok() && !full_line_detected_) {
-        vel_pub.publish(twist);
-        ros::spinOnce();
-        rate.sleep();
-    }
-
-    // zatrzymanie robota
-    twist.linear.x = 0.0;
-    vel_pub.publish(twist);
-    ros::spinOnce();
-    ROS_INFO("[SearchMeta] Line detected, forward drive stopped.");
-
-    // ewentualnie można tu dodać kolejne etapy (obroty, inne manewry)
-    publishState("ZONE_SEARCHED_LINE");
-}
-
-
-
-
-void SearchMeta::lineCallback(const std_msgs::String::ConstPtr &msg) {
-     if (!search_active_) return;
-    last_line_status_ = msg->data;
-
-    if (msg->data != "NO_LINE") {
-        ac_.cancelAllGoals();
-        full_line_detected_=true;
-        ROS_INFO("[SearchMeta] FULL_LINE detected");
-    }
-}
-
-
-void SearchMeta::executeGridSequence() {
-    // 1. Pobierz min/max x, y — zakładamy prostokąt
-    double min_x = points_[0].first, max_x = points_[0].first;
-    double min_y = points_[0].second, max_y = points_[0].second;
-    for (const auto &pt: points_) {
-        if (pt.first < min_x) min_x = pt.first;
-        if (pt.first > max_x) max_x = pt.first;
-        if (pt.second < min_y) min_y = pt.second;
-        if (pt.second > max_y) max_y = pt.second;
-    }
-
-    // 2. Utwórz grid
-    std::vector<std::pair<double, double> > grid_points;
-    for (double x = min_x + step_; x <= max_x - step_ / 2; x += step_) {
-        for (double y = min_y + step_; y <= max_y - step_ / 2; y += step_) {
-            grid_points.emplace_back(x, y);
+        // navigate to sample
+        ROS_INFO_STREAM("[SearchMeta] Navigating to sample (" << sx << ", " << sy << ")");
+        sendGoal(sx, sy, yaw);
+        if (!waitForResult()) {
+            ROS_WARN_STREAM("[SearchMeta] Navigation to sample " << idx << " failed, skipping");
+            continue; // try next sample
         }
-    }
-    ROS_INFO("[SearchMeta] Created grid with %lu points (step=%.2f)", grid_points.size(), step_);
+        any_reached = true;
 
-    // 3. Zbiór nieodwiedzonych punktów
-    std::vector<std::pair<double, double> > unvisited = grid_points;
-
-    search_active_ = true;
-    found_ = false;
-
-    // 4. Punkt startowy — aktualna pozycja robota
-    double robot_x = current_pose_.position.x;
-    double robot_y = current_pose_.position.y;
-
-    while (!unvisited.empty() && search_active_) {
-        // a) Najpierw szukaj najbliższego punktu na prawo od robota (większe X)
-        int best_idx = -1;
-        double best_dist = std::numeric_limits<double>::max();
-
-        for (size_t i = 0; i < unvisited.size(); ++i) {
-            double dx = unvisited[i].first - robot_x;
-            double dy = unvisited[i].second - robot_y;
-            if (dx >= 0.0) {
-                // preferuj na prawo od robota (x większe)
-                double dist = std::hypot(dx, dy);
-                if (dist < best_dist) {
-                    best_dist = dist;
-                    best_idx = i;
-                }
-            }
+        // forward drive until line
+        full_line_detected_ = false;
+        start_pose = current_pose_;
+        while (ros::ok() && !full_line_detected_ && sampling_active_) {
+            geometry_msgs::Twist t; t.linear.x = 0.1; vel_pub_.publish(t);
+            ros::spinOnce(); rate.sleep();
         }
-        // b) Jeśli nie ma żadnego na prawo, wybierz dowolny najbliższy
-        if (best_idx == -1) {
-            for (size_t i = 0; i < unvisited.size(); ++i) {
-                double dx = unvisited[i].first - robot_x;
-                double dy = unvisited[i].second - robot_y;
-                double dist = std::hypot(dx, dy);
-                if (dist < best_dist) {
-                    best_dist = dist;
-                    best_idx = i;
-                }
-            }
-        }
-        if (best_idx == -1) break; // powinno się nie zdarzyć
+        ros::Duration(1.0).sleep(); stopRobot();
 
-        auto pt = unvisited[best_idx];
-        unvisited.erase(unvisited.begin() + best_idx);
-
-
-        // c) Wysyłaj goal do move_base
-        double yaw = atan2(pt.second - robot_y, pt.first - robot_x); // Różnica: do punktu z obecnej pozycji
-
-        move_base_msgs::MoveBaseGoal goal;
-        goal.target_pose.header.frame_id = "map";
-        goal.target_pose.header.stamp = ros::Time::now();
-        goal.target_pose.pose.position.x = pt.first;
-        goal.target_pose.pose.position.y = pt.second;
-
-        // Ustaw orientację w kierunku jazdy!
-        tf2::Quaternion q;
-        q.setRPY(0.0, 0.0, yaw);
-        goal.target_pose.pose.orientation = tf2::toMsg(q);
-
-        ROS_INFO("[SearchMeta] Sending goal: x=%.2f y=%.2f yaw=%.2f deg", pt.first, pt.second, yaw * 180.0 / M_PI);
-
-        ac_.sendGoal(goal);
-
-        // d) Czekaj na wynik lub przerwanie
-        bool finished = false;
-        while (ros::ok() && !finished) {
-            if (!search_active_) {
-                ac_.cancelAllGoals();
-                ROS_WARN("[SearchMeta] Search aborted by event");
-                return;
-            }
-            auto state = ac_.getState();
-            if (state == actionlib::SimpleClientGoalState::SUCCEEDED) {
-                finished = true;
-                robot_x = pt.first;
-                robot_y = pt.second;
-            } else if (state == actionlib::SimpleClientGoalState::ABORTED ||
-                       state == actionlib::SimpleClientGoalState::REJECTED) {
-                ROS_WARN("[SearchMeta] Couldn't reach grid point, skipping...");
-                finished = true;
-                // zostawiamy robot_x, robot_y bez zmiany
-            }
-            ros::Duration(0.1).sleep();
-            ros::spinOnce();
-        }
-    }
-
-    search_active_ = false;
-    if (!found_) {
-        ROS_INFO("[SearchMeta] Finished searching zone. No meta found.");
-        publishState("ZONE_SEARCHED_NO_META");
-        publishAbort();
-    }
-}
-
-
-void SearchMeta::magnetCallback(const std_msgs::Bool::ConstPtr &msg) {
-    if (!search_active_) return; // ignore until Y‑segment is active
-    if (msg->data) {
-
-        search_active_ = false;
-        ROS_INFO("[SearchMeta] Meta detected");
-        ac_.cancelAllGoals();
-        publishState("FOUNDED_FINISH");
-    }
-}
-
-bool SearchMeta::waitForResult() const {
-
-    ros::Rate r(20);
-    while (ros::ok()) {
         if (full_line_detected_) {
-            ROS_WARN("[SearchOrientation] FULL_LINE detected");
-
-            return false;
+            // reverse back
+            ROS_INFO("[SearchMeta] Line detected, reversing to start pose");
+            reverseToStart(start_pose, 0.1);
+            stopRobot();
+        } else {
+            ROS_WARN_STREAM("[SearchMeta] No line detected at sample " << idx);
         }
-
-        if (ac_.getState().isDone()) {
-            publishAbort();
-            return ac_.getState() == actionlib::SimpleClientGoalState::SUCCEEDED;
-        }
-
-
-        ros::spinOnce();
-        r.sleep();
     }
-    return false;
+
+    sampling_active_ = false;
+    if (!any_reached) {
+        ROS_ERROR("[SearchMeta] No samples reached, aborting mission");
+        publishAbort();
+    } else {
+        ROS_INFO("[SearchMeta] Sampling sequence complete");
+        publishState("SAMPLING_COMPLETE");
+    }
 }
 
-void SearchMeta::sendRelativeGoal(const double dx, const double dy, const double dyaw) {
+size_t SearchMeta::findNearestSample(
+    const geometry_msgs::Pose &pose,
+    const std::vector<bool> &visited) const {
+    size_t best = 0;
+    double mind = std::numeric_limits<double>::infinity();
+    for (size_t i = 0; i < samples_points_.size(); ++i) {
+        if (visited[i]) continue;
+        auto [x,y] = samples_points_[i];
+        double d2 = std::hypot(x - pose.position.x, y - pose.position.y);
+        if (d2 < mind) { mind = d2; best = i; }
+    }
+    return best;
+}
+
+double SearchMeta::yawFromFinalOrientation() const {
+    if (final_orientation_ == "top")    return 0.0;
+    if (final_orientation_ == "right")  return -M_PI_2;
+    if (final_orientation_ == "bottom") return M_PI;
+    if (final_orientation_ == "left")   return M_PI_2;
+    return std::numeric_limits<double>::quiet_NaN();
+}
+
+void SearchMeta::stopRobot() {
+    geometry_msgs::Twist t; vel_pub_.publish(t);
+}
+
+void SearchMeta::reverseToStart(const geometry_msgs::Pose &start, double speed) {
+    ros::Rate rate(20.0);
+    while (ros::ok()) {
+        double d = std::hypot(current_pose_.position.x - start.position.x,
+                              current_pose_.position.y - start.position.y);
+        if (d < 0.05) break;
+        geometry_msgs::Twist t; t.linear.x = -speed;
+        vel_pub_.publish(t);
+        ros::spinOnce(); rate.sleep();
+    }
+}
+
+
+bool SearchMeta::waitForResult(double timeout_sec) {
+    if (!ac_.waitForServer(ros::Duration(timeout_sec))) return false;
+    return ac_.getState() == actionlib::SimpleClientGoalState::SUCCEEDED;
+}
+geometry_msgs::Point SearchMeta::makePoint(double x, double y) {
+    geometry_msgs::Point p;
+    p.x = x;
+    p.y = y;
+    p.z = 0;
+    return p;
+}
+
+
+void SearchMeta::sendGoal(double x, double y, double yaw) {
     move_base_msgs::MoveBaseGoal goal;
-    goal.target_pose.header.frame_id = "base_footprint"; // relative frame
+    goal.target_pose.header.frame_id = "map";
+    goal.target_pose.header.stamp = ros::Time::now();
+    goal.target_pose.pose.position.x = x;
+    goal.target_pose.pose.position.y = y;
+    tf2::Quaternion q; q.setRPY(0,0,yaw);
+    goal.target_pose.pose.orientation = tf2::toMsg(q);
+    ac_.sendGoal(goal);
+}
+
+void SearchMeta::sendRelativeGoal(double dx, double dy, double dyaw) {
+    move_base_msgs::MoveBaseGoal goal;
+    goal.target_pose.header.frame_id = "base_footprint";
     goal.target_pose.header.stamp = ros::Time::now();
     goal.target_pose.pose.position.x = dx;
     goal.target_pose.pose.position.y = dy;
-
-    tf2::Quaternion q;
-    q.setRPY(0.0, 0.0, dyaw);
+    tf2::Quaternion q; q.setRPY(0, 0, dyaw);
     goal.target_pose.pose.orientation = tf2::toMsg(q);
-
     ac_.sendGoal(goal);
 }
 
@@ -304,10 +211,149 @@ void SearchMeta::odomCallback(const nav_msgs::Odometry::ConstPtr &msg) {
     current_pose_ = msg->pose.pose;
 }
 
-void SearchMeta::publishAbort() const { publishState("ABORT_MISSION"); }
+void SearchMeta::lineCallback(const std_msgs::String::ConstPtr &msg) {
+    if (msg->data != "NO_LINE") {
+        full_line_detected_ = true;
+        ac_.cancelAllGoals();
+        ROS_INFO("[SearchMeta] FULL_LINE detected");
+    }
+}
+
+void SearchMeta::magnetCallback(const std_msgs::Bool::ConstPtr &msg) {
+    if (msg->data) {
+        sampling_active_ = false;
+        ROS_INFO("[SearchMeta] Meta detected");
+        publishState("FOUNDED_FINISH");
+        ros::spinOnce();
+        ac_.cancelAllGoals();
+        stopRobot();
+    }
+}
+
+void SearchMeta::publishAbort() const {
+    publishState("ABORT_MISSION");
+}
 
 void SearchMeta::publishState(const std::string &msg) const {
-    std_msgs::String s;
-    s.data = msg;
+    std_msgs::String s; s.data = msg;
     state_pub_.publish(s);
+}
+
+void SearchMeta::executeLineSequence() {
+    ROS_INFO("[SearchMeta] Starting line sequence");
+    search_active_ = true;
+    full_line_detected_ = false;
+
+    // 1. Drive forward until line detected
+    ros::Rate rate(20);
+    geometry_msgs::Twist cmd;
+    cmd.linear.x = 0.1;
+    while (ros::ok() && !full_line_detected_ && search_active_) {
+        vel_pub_.publish(cmd);
+        ros::spinOnce();
+        rate.sleep();
+    }
+    ros::Duration(1.0).sleep();
+    stopRobot();
+    if (!full_line_detected_) {
+        ROS_WARN("[SearchMeta] Line not detected");
+        publishAbort();
+        return;
+    }
+
+    // 2. Rotate 90 degrees
+    sendRelativeGoal(0.0, 0.0, M_PI_2);
+    waitForResult(5.0);
+
+    // 3. Build cage around orientation point
+    double cage_h = nh_.param<double>("/mission/cage_height", 2.5);
+    double cage_w = nh_.param<double>("/mission/cage_width", 2.5);
+    double cage_size = nh_.param<double>("/mission/cage_size", 0.1);
+    geometry_msgs::Point start, orient;
+    nh_.getParam("/start_pose/x", start.x);
+    nh_.getParam("/start_pose/y", start.y);
+    nh_.getParam("/orientation_pose/x", orient.x);
+    nh_.getParam("/orientation_pose/y", orient.y);
+    geometry_msgs::Point corner;
+    if (final_orientation_ == "bottom" || final_orientation_ == "top") {
+        corner.x = start.x;
+        corner.y = orient.y;
+    } else {
+        corner.x = orient.x;
+        corner.y = start.y;
+    }
+    nh_.setParam("/corner_pose/x", corner.x);
+    nh_.setParam("/corner_pose/y", corner.y);
+
+    bool turn_left = true;
+    geometry_msgs::Point vecRight, vecUp;
+    if (final_orientation_ == "bottom") {
+        vecRight = makePoint(0, turn_left ? -1 : 1);
+        vecUp = makePoint(1, 0);
+    } else if (final_orientation_ == "top") {
+        vecRight = makePoint(0, turn_left ? 1 : -1);
+        vecUp = makePoint(-1, 0);
+    } else if (final_orientation_ == "left") {
+        vecRight = makePoint(1, 0);
+        vecUp = makePoint(0, turn_left ? -1 : 1);
+    } else {
+        vecRight = makePoint(-1, 0);
+        vecUp = makePoint(0, turn_left ? 1 : -1);
+    }
+
+    double W = cage_w + 2 * move_cage_;
+    double H = cage_h + 2 * move_cage_;
+    auto add = [&](const geometry_msgs::Point &a, const geometry_msgs::Point &v, double s) {
+        return makePoint(a.x + v.x * s, a.y + v.y * s);
+    };
+    auto bl = add(add(corner, vecRight, -move_cage_), vecUp, -move_cage_);
+    auto br = add(bl, vecRight, W);
+    auto tl = add(bl, vecUp, H);
+    auto tr = add(tl, vecRight, W);
+
+    virtual_costmap_layer::Obstacles obs;
+    obs.list.clear();
+    auto addWall = [&](const geometry_msgs::Point &a, const geometry_msgs::Point &b) {
+        virtual_costmap_layer::Form f;
+        f.form = {a, b};
+        obs.list.push_back(f);
+    };
+    addWall(bl, br); addWall(br, tr); addWall(tr, tl); addWall(tl, bl);
+    wall_pub_.publish(obs);
+
+    // 4. Traverse within shifted zone
+    geometry_msgs::Point zmin, zmax;
+    zmin.x = zmin.y = std::numeric_limits<double>::infinity();
+    zmax.x = zmax.y = -std::numeric_limits<double>::infinity();
+    for (auto &p : points_) {
+        double x = p.first + corner.x;
+        double y = p.second + corner.y;
+        zmin.x = std::min(zmin.x, x);
+        zmin.y = std::min(zmin.y, y);
+        zmax.x = std::max(zmax.x, x);
+        zmax.y = std::max(zmax.y, y);
+    }
+    ROS_INFO_STREAM("Zone X:[" << zmin.x << "," << zmax.x << "] Y:[" << zmin.y << "," << zmax.y << "]");
+
+    bool forward = true;
+    std::vector<double> deltas{0.5, 0.75, 1.0, 1.25, 1.5};
+    while (ros::ok() && search_active_) {
+        for (double d : deltas) {
+            if (!search_active_) break;
+            double dir = forward ? d : -d;
+            double tx = current_pose_.position.x + vecRight.x * dir;
+            double ty = current_pose_.position.y + vecRight.y * dir;
+            if (tx < zmin.x || tx > zmax.x || ty < zmin.y || ty > zmax.y) continue;
+            sendGoal(tx, ty, std::numeric_limits<double>::quiet_NaN());
+            if (waitForResult(10.0)) break;
+            ROS_WARN_STREAM("Step " << d << " failed, skipping");
+        }
+        double pos = vecRight.x ? current_pose_.position.x : current_pose_.position.y;
+        double bound = forward ? (vecRight.x ? zmax.x : zmax.y) : (vecRight.x ? zmin.x : zmin.y);
+        if (std::fabs(pos - bound) < 0.1) forward = !forward;
+        ros::spinOnce();
+    }
+
+    stopRobot();
+    ROS_INFO("[SearchMeta] Line sequence complete");
 }

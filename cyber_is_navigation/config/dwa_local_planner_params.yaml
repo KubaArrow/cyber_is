@@ -11,8 +11,8 @@ DWAPlannerROS:
   max_vel_y: 0.0
   min_vel_y: 0.0
 
-  max_vel_theta: 6,28
-  min_vel_theta: -6,28
+  max_vel_theta: 6.28
+  min_vel_theta: -6.28
 
   min_in_place_vel_theta: -3.14
   max_in_place_vel_theta: 3.14
@@ -48,3 +48,4 @@ DWAPlannerROS:
   # Debugging
   publish_traj_pc : true
   publish_cost_grid_pc: true
+

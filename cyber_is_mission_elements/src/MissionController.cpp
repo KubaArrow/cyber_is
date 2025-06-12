@@ -43,6 +43,7 @@ void MissionController::stateCallback(const std_msgs::String::ConstPtr &msg)  {
         ROS_INFO("FOUNDED_ZONE received. Starting search meta");
     }else if (msg->data == "FOUNDED_FINISH") {
         m_coll_.stopCollecting();
+        mission_element_.emplace<std::monostate>();
         ROS_INFO("FOUNDED_FINISH received. Stop collecting and start finish action");
     }else {
         ROS_INFO("Unrecognize status");
@@ -55,4 +56,5 @@ void MissionController::publishState(const std::string &msg) const {
     std_msgs::String s;
     s.data = msg;
     state_pub_.publish(s);
+    ros::spinOnce();
 }

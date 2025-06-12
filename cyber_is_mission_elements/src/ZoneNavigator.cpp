@@ -280,6 +280,7 @@ void ZoneNavigator::publishState(const std::string &msg) const {
     std_msgs::String s;
     s.data = msg;
     state_pub_.publish(s);
+    ros::spinOnce();
 }
 
 void ZoneNavigator::computeCentersAndCentroid(

@@ -18,21 +18,7 @@
 
         <!--Collector-->
         <param name="publish_rate" value="1.0"/>
-
-        <!--ORIENTATION-->
-        <param name="start_position" value="bottom"/>
-        <param name="move_front" value="0.45"/>
-
-        <!--CAGE-->
         <param name="cage_size" value="0.20"/>
-        <param name="cage_move" value="-0.10"/>
-
-        <!--ZONE-->
-
-
-        <!--SEARCH META -->
-        <param name="mode" value="line"/>
-        <param name="step" value="0.4"/>
 
 
 

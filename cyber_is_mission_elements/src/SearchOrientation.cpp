@@ -34,6 +34,8 @@ SearchOrientation::SearchOrientation(
     nh_.param("/mission/cage_move", cage_move_, 0.10);
 
     nh_.param("/mission/turn_left", turn_left_, false);
+    nh_.param<std::string>("/mission/orientation_mode", mode_, "safe");
+
 
 
     // ───────── topics ─────────
@@ -66,9 +68,28 @@ void SearchOrientation::executeSequence() {
 
     search_active_ = true;
     sendRelativeGoal(move_side_, 0.0, 0.0);
-    if (!waitForResultWithAbordOnDone()) {
-        // W środku tej funkcji już masz publishAbort()
-        return;
+    if(mode_ == "safe") {
+        if (!waitForResultWithAbordOnDone()) {
+            // W środku tej funkcji już masz publishAbort()
+            return;
+        }
+    }else{
+        if (!waitForResult()) {
+            // Nie wysyłaj abort! Po prostu kończ sekwencję.
+            return;
+        }
+        vel_pub_   = nh_.advertise<geometry_msgs::Twist>("/cmd_vel", 1);
+        ros::Rate rate(20);
+        geometry_msgs::Twist cmd;
+        cmd.linear.x = 0.1;
+        while (ros::ok() &&!founded_orientation_) {
+            vel_pub_.publish(cmd);
+            ros::spinOnce();
+            rate.sleep();
+        }
+        ros::Duration(1.0).sleep();
+        geometry_msgs::Twist t;
+        vel_pub_.publish(t);
     }
     search_active_ = false;
 }
@@ -92,7 +113,7 @@ void SearchOrientation::sendRelativeGoal(const double dx, const double dy, const
 bool SearchOrientation::waitForResult() const {
     ros::Rate r(20);
     while (ros::ok()) {
-        if (full_line_detected_) {
+        if (founded_orientation_) {
             ROS_WARN("[SearchOrientation] FULL_LINE detected → cancel current goal");
             return false;
         }
@@ -112,7 +133,7 @@ bool SearchOrientation::waitForResult() const {
 bool SearchOrientation::waitForResultWithAbordOnDone() const {
     ros::Rate r(20);
     while (ros::ok()) {
-        if (full_line_detected_) {
+        if (founded_orientation_) {
             ROS_WARN("[SearchOrientation] FULL_LINE detected → cancel current goal");
             return false;  // i tak misja zakończona przez callback
         }
@@ -147,7 +168,7 @@ void SearchOrientation::lineCallback(const std_msgs::String::ConstPtr &msg) {
 
     if (msg->data != "NO_LINE") {
         ac_.cancelAllGoals();
-
+        founded_orientation_ = true;
         ROS_INFO("[SearchOrientation] FULL_LINE detected → stop & build virtual wall");
         odom_sub_.shutdown();
         sendRelativeGoal(-0.5, 0.0, 0.0);
@@ -156,8 +177,6 @@ void SearchOrientation::lineCallback(const std_msgs::String::ConstPtr &msg) {
 
         publishState("FOUNDED_ORIENTATION");
 
-        // <<<--- to jest kluczowe!
-        founded_orientation_ = true;
     }
 }
 
@@ -254,4 +273,5 @@ void SearchOrientation::publishState(const std::string &msg) const {
     std_msgs::String s;
     s.data = msg;
     state_pub_.publish(s);
+    ros::spinOnce();
 }

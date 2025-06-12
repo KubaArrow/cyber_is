@@ -26,10 +26,10 @@ private:
     ros::NodeHandle nh_;
     actionlib::SimpleActionClient<move_base_msgs::MoveBaseAction> ac_;
 
-    ros::Publisher state_pub_, wall_pub_;
+    ros::Publisher state_pub_, wall_pub_, vel_pub_;
     ros::Subscriber line_sub_, odom_sub_;
 
-    std::string state_topic_, line_detector_topic_, wall_topic_, odom_topic_, wall_start_;
+    std::string state_topic_, line_detector_topic_, wall_topic_, odom_topic_, wall_start_, mode_;
 
     double move_front_ = 1.5; // [m]
     double move_side_ = 1.0; // [m]
