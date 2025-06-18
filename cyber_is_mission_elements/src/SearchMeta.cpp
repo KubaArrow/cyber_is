@@ -123,7 +123,6 @@ void SearchMeta::executeSamplingSequence()
             vel_pub_.publish(t);
             ros::spinOnce();  rate.sleep();
         }
-        ros::Duration(1.0).sleep();
         stopRobot();
 
         /*–– 4. Powrót do start_pose przez move_base ––*/
@@ -233,7 +232,7 @@ double SearchMeta::yawFromFinalOrientation() const
 
 
 void SearchMeta::stopRobot() {
-    geometry_msgs::Twist t; vel_pub_.publish(t);
+    geometry_msgs::Twist t; vel_pub_.publish(t); ros::spinOnce();
 }
 
 void SearchMeta::reverseToStart(const geometry_msgs::Pose &start, double speed) {
@@ -342,7 +341,6 @@ void SearchMeta::executeLineSequence() {
         ros::spinOnce();
         rate.sleep();
     }
-    ros::Duration(1.0).sleep();
     stopRobot();
     if (!full_line_detected_) {
         ROS_WARN("[SearchMeta] Line not detected");
