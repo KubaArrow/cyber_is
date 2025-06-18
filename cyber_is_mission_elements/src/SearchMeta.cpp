@@ -5,6 +5,8 @@
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #include <virtual_costmap_layer/Obstacles.h>
 #include <cmath>
+#include <tf2/utils.h>   // dla tf2::getYaw
+
 
 SearchMeta::SearchMeta(
     ros::NodeHandle &nh,
@@ -78,49 +80,73 @@ SearchMeta::SearchMeta(
     else                 executeSamplingSequence();
 }
 
-void SearchMeta::executeSamplingSequence() {
+void SearchMeta::executeSamplingSequence()
+{
     ROS_INFO("[SearchMeta] Starting sampling sequence");
     sampling_active_ = true;
     ros::Rate rate(20.0);
 
     std::vector<bool> visited(samples_points_.size(), false);
-    geometry_msgs::Pose start_pose;
     bool any_reached = false;
 
-    // Iterate until all samples attempted or sampling deactivated
-    for (size_t i = 0; i < samples_points_.size() && sampling_active_; ++i) {
-        // pick nearest unvisited sample
+    /* -----------------------------------------------------------
+     *  Główna pętla – dopóki aktywne i są nieodwiedzone próbki
+     * ----------------------------------------------------------*/
+    while (sampling_active_)
+    {
+        /*–– 1. Wybór najbliższej nieodwiedzonej próbki ––*/
         size_t idx = findNearestSample(current_pose_, visited);
+        if (visited[idx]) break;                  // wszystko zaliczone
         visited[idx] = true;
-        auto [sx, sy] = samples_points_[idx];
+
+        const auto& sp = samples_points_[idx];
+        double sx  = sp.first;
+        double sy  = sp.second;
         double yaw = yawFromFinalOrientation();
 
-        // navigate to sample
+        /*–– 2. Dojazd do punktu próbki ––*/
         ROS_INFO_STREAM("[SearchMeta] Navigating to sample (" << sx << ", " << sy << ")");
         sendGoal(sx, sy, yaw);
-        if (!waitForResult()) {
+
+        if (!waitForResult(180.0)) {              // 3 minuty na dojazd
             ROS_WARN_STREAM("[SearchMeta] Navigation to sample " << idx << " failed, skipping");
-            continue; // try next sample
+            continue;
         }
         any_reached = true;
 
-        // forward drive until line
+        /*–– 3. Lekki podjazd, aż zobaczymy linię ––*/
+        geometry_msgs::Pose start_pose = current_pose_;   // zapamiętujemy
         full_line_detected_ = false;
-        start_pose = current_pose_;
-        while (ros::ok() && !full_line_detected_ && sampling_active_) {
-            geometry_msgs::Twist t; t.linear.x = 0.1; vel_pub_.publish(t);
-            ros::spinOnce(); rate.sleep();
-        }
-        ros::Duration(1.0).sleep(); stopRobot();
 
+        while (ros::ok() && !full_line_detected_ && sampling_active_) {
+            geometry_msgs::Twist t;  t.linear.x = 0.1;
+            vel_pub_.publish(t);
+            ros::spinOnce();  rate.sleep();
+        }
+        ros::Duration(1.0).sleep();
+        stopRobot();
+
+        /*–– 4. Powrót do start_pose przez move_base ––*/
         if (full_line_detected_) {
-            // reverse back
-            ROS_INFO("[SearchMeta] Line detected, reversing to start pose");
-            reverseToStart(start_pose, 0.1);
+            ROS_INFO("[SearchMeta] Line detected, returning to start pose via move_base");
+
+            double start_yaw = tf2::getYaw(start_pose.orientation);
+            sendGoal(start_pose.position.x,
+                     start_pose.position.y,
+                     start_yaw);
+
+            if (!waitForResult(60.0)) {
+                ROS_WARN("[SearchMeta] Return to start pose failed – cancelling");
+                ac_.cancelGoal();
+            }
             stopRobot();
         } else {
             ROS_WARN_STREAM("[SearchMeta] No line detected at sample " << idx);
         }
+
+        /*–– 5. Czy zostały próbek? ––*/
+        if (std::all_of(visited.begin(), visited.end(), [](bool v){ return v; }))
+            break;
     }
 
     sampling_active_ = false;
@@ -132,6 +158,7 @@ void SearchMeta::executeSamplingSequence() {
         publishState("SAMPLING_COMPLETE");
     }
 }
+
 
 size_t SearchMeta::findNearestSample(
     const geometry_msgs::Pose &pose,
@@ -147,13 +174,63 @@ size_t SearchMeta::findNearestSample(
     return best;
 }
 
-double SearchMeta::yawFromFinalOrientation() const {
-    if (final_orientation_ == "top")    return 0.0;
-    if (final_orientation_ == "right")  return -M_PI_2;
-    if (final_orientation_ == "bottom") return M_PI;
-    if (final_orientation_ == "left")   return M_PI_2;
-    return std::numeric_limits<double>::quiet_NaN();
+double SearchMeta::yawFromFinalOrientation() const
+{
+    if (points_.size() != 4)                     // zabezpieczenie
+        return std::numeric_limits<double>::quiet_NaN();
+
+    /* 1. Centroid strefy */
+    double cx = 0, cy = 0;
+    for (auto &p : points_) { cx += p.first; cy += p.second; }
+    cx /= 4.0;  cy /= 4.0;
+
+    /* 2. Środki krawędzi prostokąta */
+    struct P { double x, y; };
+    std::array<P,4> edge_centers;
+    for (int i = 0; i < 4; ++i) {
+        int j = (i + 1) % 4;
+        edge_centers[i] = {(points_[i].first + points_[j].first) * 0.5,
+                           (points_[i].second + points_[j].second) * 0.5};
+    }
+
+    /* 3. Wybór krawędzi zgodnie z final_orientation_ */
+    double target_x = cx, target_y = cy;   // domyślnie centroid
+    if (final_orientation_ == "right") {
+        size_t idx = 0; double max_y = edge_centers[0].y;
+        for (size_t i = 1; i < edge_centers.size(); ++i)
+            if (edge_centers[i].y > max_y) { max_y = edge_centers[i].y; idx = i; }
+        target_x = edge_centers[idx].x;
+        target_y = edge_centers[idx].y;
+
+    } else if (final_orientation_ == "top") {
+        size_t idx = 0; double max_x = edge_centers[0].x;
+        for (size_t i = 1; i < edge_centers.size(); ++i)
+            if (edge_centers[i].x > max_x) { max_x = edge_centers[i].x; idx = i; }
+        target_x = edge_centers[idx].x;
+        target_y = edge_centers[idx].y;
+
+    } else if (final_orientation_ == "left") {
+        size_t idx = 0; double min_y = edge_centers[0].y;
+        for (size_t i = 1; i < edge_centers.size(); ++i)
+            if (edge_centers[i].y < min_y) { min_y = edge_centers[i].y; idx = i; }
+        target_x = edge_centers[idx].x;
+        target_y = edge_centers[idx].y;
+
+    } else if (final_orientation_ == "bottom") {
+        size_t idx = 0; double min_x = edge_centers[0].x;
+        for (size_t i = 1; i < edge_centers.size(); ++i)
+            if (edge_centers[i].x < min_x) { min_x = edge_centers[i].x; idx = i; }
+        target_x = edge_centers[idx].x;
+        target_y = edge_centers[idx].y;
+
+    } else {    // "none" lub literówka
+        return std::numeric_limits<double>::quiet_NaN();
+    }
+
+    /* 4. Yaw – wektor od punktu docelowego do centroidu */
+    return std::atan2(cy - target_y, cx - target_x);
 }
+
 
 void SearchMeta::stopRobot() {
     geometry_msgs::Twist t; vel_pub_.publish(t);
@@ -172,10 +249,22 @@ void SearchMeta::reverseToStart(const geometry_msgs::Pose &start, double speed) 
 }
 
 
-bool SearchMeta::waitForResult(double timeout_sec) {
-    if (!ac_.waitForServer(ros::Duration(timeout_sec))) return false;
-    return ac_.getState() == actionlib::SimpleClientGoalState::SUCCEEDED;
+bool SearchMeta::waitForResult(double timeout_sec /* = 60.0 */)
+{
+    bool finished = ac_.waitForResult(ros::Duration(timeout_sec));      // <-- czekamy na odpowiedź
+    if (!finished) {                                                    // timeout
+        ROS_WARN("[SearchMeta] Goal timeout – cancelling");
+        ac_.cancelGoal();
+        return false;
+    }
+
+    auto st = ac_.getState();
+    if (st == actionlib::SimpleClientGoalState::SUCCEEDED)  return true;
+
+    ROS_WARN_STREAM("[SearchMeta] Goal aborted: " << st.toString());
+    return false;
 }
+
 geometry_msgs::Point SearchMeta::makePoint(double x, double y) {
     geometry_msgs::Point p;
     p.x = x;

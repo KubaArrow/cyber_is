@@ -168,11 +168,11 @@ void SearchOrientation::lineCallback(const std_msgs::String::ConstPtr &msg) {
 
     if (msg->data != "NO_LINE") {
         ac_.cancelAllGoals();
-        founded_orientation_ = true;
         ROS_INFO("[SearchOrientation] FULL_LINE detected → stop & build virtual wall");
         odom_sub_.shutdown();
         sendRelativeGoal(-0.5, 0.0, 0.0);
         if (!waitForResult()) return;
+        founded_orientation_ = true;
         make_walls();
 
         publishState("FOUNDED_ORIENTATION");
