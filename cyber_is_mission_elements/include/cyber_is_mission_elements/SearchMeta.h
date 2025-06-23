@@ -40,6 +40,8 @@ private:
     ros::Subscriber line_sub_, magnet_sub_, odom_sub_;
     ros::Publisher state_pub_, wall_pub_, vel_pub_;
 
+    bool have_corner=false;
+    geometry_msgs::Point cornerPoint;
     // robot state
     geometry_msgs::Pose current_pose_;
     bool sampling_active_{false};
@@ -66,6 +68,7 @@ private:
     void reverseToStart(const geometry_msgs::Pose &start, double speed);
     void publishAbort() const;
     void publishState(const std::string &msg) const;
+    void make_walls();
 };
 
 #endif // SEARCHMETA_H

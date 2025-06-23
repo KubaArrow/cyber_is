@@ -74,7 +74,8 @@ SearchMeta::SearchMeta(
         publishAbort(); ros::shutdown(); return;
     }
     ROS_INFO("[SearchMeta] Connected to move_base");
-
+    have_corner = nh_.getParam("/corner_pose/x", cornerPoint.x) && nh_.getParam("/corner_pose/y", cornerPoint.y);
+        make_walls();
     // Start sequence
     if (mode_ == "line") executeLineSequence();
     else                 executeSamplingSequence();
@@ -82,81 +83,109 @@ SearchMeta::SearchMeta(
 
 void SearchMeta::executeSamplingSequence()
 {
-    ROS_INFO("[SearchMeta] Starting sampling sequence");
-    sampling_active_ = true;
-    ros::Rate rate(20.0);
+    // 1. Wczytaj narożnik z parametrów i oblicz przekształcone próbki
 
-    std::vector<bool> visited(samples_points_.size(), false);
+
+    std::vector<std::pair<double,double>> local_samples;
+    local_samples.reserve(samples_points_.size());
+    for (const auto& op : samples_points_) {
+        double sx = op.first + (have_corner ? cornerPoint.x : 0.0);
+        double sy = op.second + (have_corner ?  cornerPoint.y : 0.0);
+        local_samples.emplace_back(sx, sy);
+    }
+    if (have_corner) {
+        ROS_INFO_STREAM("[SearchMeta] Local samples offset by corner: x+" << cornerPoint.x << ", y+" <<  cornerPoint.y);
+    } else {
+        ROS_WARN("[SearchMeta] corner_pose not set – using raw sample coordinates");
+    }
+
+    // 2. Poczekaj na inicjalizację odometrii
+    ROS_INFO("[SearchMeta] Initializing odometry...");
+    ros::Rate init_rate(10);
+    for (int i = 0; i < 20 && ros::ok(); ++i) {
+        ros::spinOnce();
+        init_rate.sleep();
+    }
+
+    // 3. Przygotuj odwiedzone i zaczynamy iterować
+    ros::Rate rate(20);
+    std::vector<bool> visited(local_samples.size(), false);
     bool any_reached = false;
 
-    /* -----------------------------------------------------------
-     *  Główna pętla – dopóki aktywne i są nieodwiedzone próbki
-     * ----------------------------------------------------------*/
-    while (sampling_active_)
-    {
-        /*–– 1. Wybór najbliższej nieodwiedzonej próbki ––*/
-        size_t idx = findNearestSample(current_pose_, visited);
-        if (visited[idx]) break;                  // wszystko zaliczone
+    while (ros::ok() && !std::all_of(visited.begin(), visited.end(), [](bool v){ return v; })) {
+        // odświeżenie pozycji
+        ros::spinOnce();
+        double cur_x = current_pose_.position.x;
+        double cur_y = current_pose_.position.y;
+        double cur_yaw = tf2::getYaw(current_pose_.orientation);
+        ROS_INFO_STREAM("[SearchMeta] Current pose: ("<<cur_x<<", "<<cur_y<<"), yaw="<<cur_yaw);
+
+        // 3.1 wybór najbliższej nieodwiedzionej próbki w local_samples
+        size_t idx = 0;
+        double min_dist = std::numeric_limits<double>::infinity();
+        for (size_t i = 0; i < local_samples.size(); ++i) {
+            if (visited[i]) continue;
+            double dx = local_samples[i].first - cur_x;
+            double dy = local_samples[i].second - cur_y;
+            double d2 = dx*dx + dy*dy;
+            if (d2 < min_dist) {
+                min_dist = d2;
+                idx = i;
+            }
+        }
         visited[idx] = true;
+        double sx = local_samples[idx].first;
+        double sy = local_samples[idx].second;
+        ROS_INFO_STREAM("[SearchMeta] Next sample idx="<<idx<<" at ("<<sx<<", "<<sy<<")");
 
-        const auto& sp = samples_points_[idx];
-        double sx  = sp.first;
-        double sy  = sp.second;
+        // zapisz pozycję startową
+        geometry_msgs::Pose start_pose = current_pose_;
+
+        // 3.2 nawigacja do próbki
         double yaw = yawFromFinalOrientation();
-
-        /*–– 2. Dojazd do punktu próbki ––*/
-        ROS_INFO_STREAM("[SearchMeta] Navigating to sample (" << sx << ", " << sy << ")");
+        if (!std::isnan(yaw)) ROS_INFO_STREAM("[SearchMeta] Navigating with yaw="<<yaw);
         sendGoal(sx, sy, yaw);
-
-        if (!waitForResult(180.0)) {              // 3 minuty na dojazd
-            ROS_WARN_STREAM("[SearchMeta] Navigation to sample " << idx << " failed, skipping");
+        if (!waitForResult(30.0)) {
+            ROS_WARN_STREAM("[SearchMeta] Navigation to sample "<<idx<<" failed");
             continue;
         }
         any_reached = true;
 
-        /*–– 3. Lekki podjazd, aż zobaczymy linię ––*/
-        geometry_msgs::Pose start_pose = current_pose_;   // zapamiętujemy
+        // 3.3 jazda powolna do przodu aż wykryje linię
         full_line_detected_ = false;
-
-        while (ros::ok() && !full_line_detected_ && sampling_active_) {
-            geometry_msgs::Twist t;  t.linear.x = 0.1;
-            vel_pub_.publish(t);
-            ros::spinOnce();  rate.sleep();
+        ROS_INFO("[SearchMeta] Driving slowly until line detection...");
+        geometry_msgs::Twist slow;
+        slow.linear.x = 0.05;
+        while (ros::ok() && !full_line_detected_) {
+            vel_pub_.publish(slow);
+            ros::spinOnce();
+            rate.sleep();
         }
         stopRobot();
 
-        /*–– 4. Powrót do start_pose przez move_base ––*/
+        // 3.4 powrót do start_pose
         if (full_line_detected_) {
-            ROS_INFO("[SearchMeta] Line detected, returning to start pose via move_base");
-
-            double start_yaw = tf2::getYaw(start_pose.orientation);
-            sendGoal(start_pose.position.x,
-                     start_pose.position.y,
-                     start_yaw);
-
-            if (!waitForResult(60.0)) {
-                ROS_WARN("[SearchMeta] Return to start pose failed – cancelling");
-                ac_.cancelGoal();
-            }
+            ROS_INFO_STREAM("[SearchMeta] Line detected – returning to start (" 
+                            << start_pose.position.x<<", "<<start_pose.position.y<<")");
+            double back_yaw = tf2::getYaw(start_pose.orientation);
+            sendGoal(start_pose.position.x, start_pose.position.y, back_yaw);
+            if (!waitForResult(60.0)) ROS_WARN("[SearchMeta] Return to start failed");
             stopRobot();
         } else {
-            ROS_WARN_STREAM("[SearchMeta] No line detected at sample " << idx);
+            ROS_WARN_STREAM("[SearchMeta] No line detected at sample "<<idx);
         }
-
-        /*–– 5. Czy zostały próbek? ––*/
-        if (std::all_of(visited.begin(), visited.end(), [](bool v){ return v; }))
-            break;
     }
 
-    sampling_active_ = false;
+    // 4. zakończenie sekwencji
     if (!any_reached) {
-        ROS_ERROR("[SearchMeta] No samples reached, aborting mission");
+        ROS_ERROR("[SearchMeta] No samples reached – abort mission");
         publishAbort();
     } else {
-        ROS_INFO("[SearchMeta] Sampling sequence complete");
+        ROS_INFO("[SearchMeta] Sampling complete");
         publishState("SAMPLING_COMPLETE");
     }
 }
+
 
 
 size_t SearchMeta::findNearestSample(
@@ -328,119 +357,187 @@ void SearchMeta::publishState(const std::string &msg) const {
 }
 
 void SearchMeta::executeLineSequence() {
-    ROS_INFO("[SearchMeta] Starting line sequence");
+    ROS_INFO("[SearchMeta] Starting line sequence (move_base sampling)");
     search_active_ = true;
-    full_line_detected_ = false;
 
-    // 1. Drive forward until line detected
-    ros::Rate rate(20);
-    geometry_msgs::Twist cmd;
-    cmd.linear.x = 0.1;
-    while (ros::ok() && !full_line_detected_ && search_active_) {
-        vel_pub_.publish(cmd);
-        ros::spinOnce();
-        rate.sleep();
+    // 1. Oblicz corner offset i centroid poligonu
+    double corner_x = 0.0, corner_y = 0.0;
+    nh_.param("/corner_pose/x", corner_x, 0.0);
+    nh_.param("/corner_pose/y", corner_y, 0.0);
+    double sx = 0.0, sy = 0.0;
+    for (const auto &p : points_) {
+        sx += p.first + corner_x;
+        sy += p.second + corner_y;
     }
-    stopRobot();
-    if (!full_line_detected_) {
-        ROS_WARN("[SearchMeta] Line not detected");
+    double cx = sx / points_.size();
+    double cy = sy / points_.size();
+    ROS_INFO_STREAM("Centroid: (" << cx << ", " << cy << ")");
+
+    // 2. Dojazd do centroidu przez move_base
+    move_base_msgs::MoveBaseGoal center_goal;
+    center_goal.target_pose.header.frame_id = "map";
+    center_goal.target_pose.header.stamp = ros::Time::now();
+    center_goal.target_pose.pose.position.x = cx;
+    center_goal.target_pose.pose.position.y = cy;
+    center_goal.target_pose.pose.orientation.w = 1.0;
+    ac_.sendGoal(center_goal);
+    if (!ac_.waitForResult(ros::Duration(30.0)) ||
+        ac_.getState() != actionlib::SimpleClientGoalState::SUCCEEDED) {
+        ROS_WARN("[SearchMeta] Cannot reach centroid");
         publishAbort();
         return;
     }
 
-    // 2. Rotate 90 degrees
-    sendRelativeGoal(0.0, 0.0, M_PI_2);
-    waitForResult(5.0);
-
-    // 3. Build cage around orientation point
-    double cage_h = nh_.param<double>("/mission/cage_height", 2.5);
-    double cage_w = nh_.param<double>("/mission/cage_width", 2.5);
-    double cage_size = nh_.param<double>("/mission/cage_size", 0.1);
-    geometry_msgs::Point start, orient;
-    nh_.getParam("/start_pose/x", start.x);
-    nh_.getParam("/start_pose/y", start.y);
-    nh_.getParam("/orientation_pose/x", orient.x);
-    nh_.getParam("/orientation_pose/y", orient.y);
-    geometry_msgs::Point corner;
-    if (final_orientation_ == "bottom" || final_orientation_ == "top") {
-        corner.x = start.x;
-        corner.y = orient.y;
-    } else {
-        corner.x = orient.x;
-        corner.y = start.y;
-    }
-    nh_.setParam("/corner_pose/x", corner.x);
-    nh_.setParam("/corner_pose/y", corner.y);
-
-    bool turn_left = true;
-    geometry_msgs::Point vecRight, vecUp;
-    if (final_orientation_ == "bottom") {
-        vecRight = makePoint(0, turn_left ? -1 : 1);
-        vecUp = makePoint(1, 0);
-    } else if (final_orientation_ == "top") {
-        vecRight = makePoint(0, turn_left ? 1 : -1);
-        vecUp = makePoint(-1, 0);
-    } else if (final_orientation_ == "left") {
-        vecRight = makePoint(1, 0);
-        vecUp = makePoint(0, turn_left ? -1 : 1);
-    } else {
-        vecRight = makePoint(-1, 0);
-        vecUp = makePoint(0, turn_left ? 1 : -1);
-    }
-
-    double W = cage_w + 2 * move_cage_;
-    double H = cage_h + 2 * move_cage_;
-    auto add = [&](const geometry_msgs::Point &a, const geometry_msgs::Point &v, double s) {
-        return makePoint(a.x + v.x * s, a.y + v.y * s);
-    };
-    auto bl = add(add(corner, vecRight, -move_cage_), vecUp, -move_cage_);
-    auto br = add(bl, vecRight, W);
-    auto tl = add(bl, vecUp, H);
-    auto tr = add(tl, vecRight, W);
-
-    virtual_costmap_layer::Obstacles obs;
-    obs.list.clear();
-    auto addWall = [&](const geometry_msgs::Point &a, const geometry_msgs::Point &b) {
-        virtual_costmap_layer::Form f;
-        f.form = {a, b};
-        obs.list.push_back(f);
-    };
-    addWall(bl, br); addWall(br, tr); addWall(tr, tl); addWall(tl, bl);
-    wall_pub_.publish(obs);
-
-    // 4. Traverse within shifted zone
-    geometry_msgs::Point zmin, zmax;
-    zmin.x = zmin.y = std::numeric_limits<double>::infinity();
-    zmax.x = zmax.y = -std::numeric_limits<double>::infinity();
+    // 3. Znajdź dwa najkrótsze brzegi i ich środki
+    std::vector<geometry_msgs::Point> verts;
     for (auto &p : points_) {
-        double x = p.first + corner.x;
-        double y = p.second + corner.y;
-        zmin.x = std::min(zmin.x, x);
-        zmin.y = std::min(zmin.y, y);
-        zmax.x = std::max(zmax.x, x);
-        zmax.y = std::max(zmax.y, y);
+        geometry_msgs::Point v;
+        v.x = p.first + corner_x;
+        v.y = p.second + corner_y;
+        verts.push_back(v);
     }
-    ROS_INFO_STREAM("Zone X:[" << zmin.x << "," << zmax.x << "] Y:[" << zmin.y << "," << zmax.y << "]");
+    struct Edge { geometry_msgs::Point a,b; double len; };
+    std::vector<Edge> edges;
+    for (size_t i = 0; i < verts.size(); ++i) {
+        auto &a = verts[i];
+        auto &b = verts[(i+1)%verts.size()];
+        edges.push_back({a,b, std::hypot(b.x - a.x, b.y - a.y)});
+    }
+    std::sort(edges.begin(), edges.end(), [](auto &e1, auto &e2){ return e1.len < e2.len; });
+    geometry_msgs::Point start_pt;
+    start_pt.x = (edges[0].a.x + edges[0].b.x) / 2;
+    start_pt.y = (edges[0].a.y + edges[0].b.y) / 2;
+    start_pt.z = 0.0;
+    geometry_msgs::Point end_pt;
+    end_pt.x = (edges[1].a.x + edges[1].b.x) / 2;
+    end_pt.y = (edges[1].a.y + edges[1].b.y) / 2;
+    end_pt.z = 0.0;
+    ROS_INFO_STREAM("Start edge center: ("<<start_pt.x<<","<<start_pt.y<<") end: ("<<end_pt.x<<","<<end_pt.y<<")");
 
-    bool forward = true;
-    std::vector<double> deltas{0.5, 0.75, 1.0, 1.25, 1.5};
-    while (ros::ok() && search_active_) {
-        for (double d : deltas) {
-            if (!search_active_) break;
-            double dir = forward ? d : -d;
-            double tx = current_pose_.position.x + vecRight.x * dir;
-            double ty = current_pose_.position.y + vecRight.y * dir;
-            if (tx < zmin.x || tx > zmax.x || ty < zmin.y || ty > zmax.y) continue;
-            sendGoal(tx, ty, std::numeric_limits<double>::quiet_NaN());
-            if (waitForResult(10.0)) break;
-            ROS_WARN_STREAM("Step " << d << " failed, skipping");
-        }
-        double pos = vecRight.x ? current_pose_.position.x : current_pose_.position.y;
-        double bound = forward ? (vecRight.x ? zmax.x : zmax.y) : (vecRight.x ? zmin.x : zmin.y);
-        if (std::fabs(pos - bound) < 0.1) forward = !forward;
+    // 4. Sample punkty co 0.2m wzdłuż linii start_pt->end_pt
+    double total = std::hypot(end_pt.x - start_pt.x, end_pt.y - start_pt.y);
+    size_t N = static_cast<size_t>(std::floor(total/0.2));
+    std::vector<geometry_msgs::Point> samples;
+    for (size_t i = 0; i <= N; ++i) {
+        double t = (double)i / N;
+        geometry_msgs::Point sp;
+        sp.x = start_pt.x + t*(end_pt.x - start_pt.x);
+        sp.y = start_pt.y + t*(end_pt.y - start_pt.y);
+        sp.z = 0.0;
+        samples.push_back(sp);
+    }
+
+    // 5. Nawiguj po kolejnych próbkach: wybieraj najbliższą z unvisited
+    std::vector<bool> visited(samples.size(), false);
+    size_t visited_count = 0;
+    while (ros::ok() && search_active_ && visited_count < samples.size()) {
+        // odśwież pozycję
         ros::spinOnce();
+        double curx = current_pose_.position.x;
+        double cury = current_pose_.position.y;
+        // znajdź najbliższą nieodwiedzoną próbkę
+        double bestd = std::numeric_limits<double>::infinity();
+        size_t besti = 0;
+        for (size_t i = 0; i < samples.size(); ++i) {
+            if (visited[i]) continue;
+            double d = std::hypot(samples[i].x - curx, samples[i].y - cury);
+            if (d < bestd) {
+                bestd = d;
+                besti = i;
+            }
+        }
+        // wyślij cel
+        auto &pt = samples[besti];
+        move_base_msgs::MoveBaseGoal g;
+        g.target_pose.header.frame_id = "map";
+        g.target_pose.header.stamp = ros::Time::now();
+        g.target_pose.pose.position = pt;
+        g.target_pose.pose.orientation.w = 1.0;
+        ac_.sendGoal(g);
+        bool ok = ac_.waitForResult(ros::Duration(10.0)) &&
+                  ac_.getState() == actionlib::SimpleClientGoalState::SUCCEEDED;
+        visited[besti] = true;
+        visited_count++;
+        if (ok) ROS_INFO_STREAM("Reached sample "<<besti);
+        else ROS_WARN_STREAM("Failed sample "<<besti);
     }
 
     stopRobot();
     ROS_INFO("[SearchMeta] Line sequence complete");
 }
+
+
+
+
+
+
+
+void SearchMeta::make_walls() {
+    std::string  wall_start_;
+    double cage_height_ = 1.0; // [m]
+    double cage_width_ = 1.0; // [m]
+    double cage_size_ = 1.0; // [m]
+    double cage_move_ = 1.0; // [m]
+    bool turn_left_ = true;
+    nh_.param<std::string>("/mission/start_position", wall_start_, "bottom");
+    nh_.param("/mission/cage_height", cage_height_, 2.50);
+    nh_.param("/mission/cage_width", cage_width_, 2.50);
+    nh_.param("/mission/cage_size", cage_size_, 0.10);
+    nh_.param("/mission/cage_move_search", cage_move_, 0.10);
+
+    nh_.param("/mission/turn_left", turn_left_, false);
+    // 2. Kierunki osi klatki (jednostkowe)
+    geometry_msgs::Point vecRight, vecUp;
+    if (wall_start_ == "bottom") {
+        vecRight = makePoint(0, (turn_left_ ? -1 : 1)); // oś W na Y
+        vecUp = makePoint(1, 0); // oś H na X
+    } else if (wall_start_ == "top") {
+        vecRight = makePoint(0, (turn_left_ ? 1 : -1));
+        vecUp = makePoint(-1, 0);
+    } else if (wall_start_ == "left") {
+        vecRight = makePoint(1, 0);
+        vecUp = makePoint(0, (turn_left_ ? -1 : 1));
+    } else /* "right" */ {
+        vecRight = makePoint(-1, 0);
+        vecUp = makePoint(0, (turn_left_ ? 1 : -1));
+    }
+
+    // 3. Parametry
+    const double W = cage_width_ + 2 * cage_move_;
+    const double H = cage_height_ + 2 * cage_move_;
+
+    // 4. Funkcja dodająca przesunięcie do punktu
+    auto add = [](const geometry_msgs::Point &a, const geometry_msgs::Point &v, const double s) -> geometry_msgs::Point {
+        geometry_msgs::Point p;
+        p.x = a.x + v.x * s;
+        p.y = a.y + v.y * s;
+        p.z = 0;
+    return p;
+
+    };
+
+    // 5. Przesuń cornerPoint o -cage_move w obu kierunkach, zgodnie z lokalną osią ramki:
+    geometry_msgs::Point bl = add(add(cornerPoint, vecRight, -cage_move_), vecUp, -cage_move_);
+    geometry_msgs::Point br = add(bl, vecRight, W);
+    geometry_msgs::Point tl = add(bl, vecUp, H);
+    geometry_msgs::Point tr = add(tl, vecRight, W);
+
+    virtual_costmap_layer::Obstacles msg;
+    auto addWall = [&](const geometry_msgs::Point &a, const geometry_msgs::Point &b) {
+        virtual_costmap_layer::Form wall;
+        wall.form = {a, b};
+        // Jeśli virtual_costmap_layer::Form ma pole grubości, można dodać: wall.size = cage_size_;
+        msg.list.push_back(wall);
+    };
+    addWall(bl, br);
+    addWall(br, tr);
+    addWall(tr, tl);
+    addWall(tl, bl);
+
+    wall_pub_.publish(msg);
+
+    ROS_INFO_STREAM("[SearchOrientation] Cage made ‑ corner=("
+        << bl.x << ", " << bl.y << "), size: " << W << " x " << H
+        << ", cage_move=" << cage_move_ << ", cage_size=" << cage_size_);
+}
+

@@ -2,6 +2,6 @@
     <include file="$(find cyber_is_description)/launch/description.launch"/>
     <include file="$(find cyber_is_navigation)/launch/slam/hector.launch"/>
     <include file="$(find cyber_is_navigation)/launch/localization.launch"/>
-    <include file="$(find cyber_is_navigation)/launch/move_base_dwa.launch"/>-->
+    <include file="$(find cyber_is_navigation)/launch/move_base_dwa.launch"/>
 
 </launch>

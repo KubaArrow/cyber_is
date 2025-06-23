@@ -73,19 +73,36 @@ ZoneNavigator::ZoneNavigator(ros::NodeHandle &nh, const std::string &state_topic
 
 
 void ZoneNavigator::publishPolygon() const {
+    // Pobierz przesunięcie narożnika (corner) – jeśli jest ustawione
+    double corner_x = 0.0, corner_y = 0.0;
+    bool have_corner = nh_.getParam("/corner_pose/x", corner_x)
+                    && nh_.getParam("/corner_pose/y", corner_y);
+
     geometry_msgs::PolygonStamped poly;
     poly.header.stamp = ros::Time::now();
     poly.header.frame_id = "map";
+
     for (const auto &p: points_) {
         geometry_msgs::Point32 pt;
-        pt.x = p.first;
-        pt.y = p.second;
+        pt.x = p.first  + (have_corner ? corner_x : 0.0);
+        pt.y = p.second + (have_corner ? corner_y : 0.0);
         pt.z = 0.0;
         poly.polygon.points.push_back(pt);
     }
+
     poly_pub_.publish(poly);
-    ROS_INFO_STREAM("[ZoneNavigator] Zone polygon published on "<<zone_topic_);
+    if (have_corner) {
+        ROS_INFO_STREAM("[ZoneNavigator] Zone polygon published on "
+                        << zone_topic_
+                        << " (offset by corner: +"
+                        << corner_x << ", +" << corner_y << ")");
+    } else {
+        ROS_INFO_STREAM("[ZoneNavigator] Zone polygon published on "
+                        << zone_topic_
+                        << " (no corner offset)");
+    }
 }
+
 
 std::pair<double, double> ZoneNavigator::centroid() const {
     double sx = 0, sy = 0;

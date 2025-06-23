@@ -46,6 +46,7 @@ SearchOrientation::SearchOrientation(
     line_sub_ = nh_.subscribe(line_detector_topic_, 1, &SearchOrientation::lineCallback, this);
     odom_sub_ = nh_.subscribe(odom_topic_, 10, &SearchOrientation::odomCallback, this);
 
+    full_line_detected_=false;
 
     ROS_INFO("[SearchStart] Waiting for move_base action server...");
     if (!ac_.waitForServer(ros::Duration(20.0))) {
@@ -166,14 +167,15 @@ bool SearchOrientation::waitForResultWithAbordOnDone() const {
 void SearchOrientation::lineCallback(const std_msgs::String::ConstPtr &msg) {
     if (!search_active_) return; // ignore until Y‑segment is active
 
-    if (msg->data != "NO_LINE") {
+    if (msg->data != "NO_LINE"&&!full_line_detected_) {
+        full_line_detected_=true;
         ac_.cancelAllGoals();
         ROS_INFO("[SearchOrientation] FULL_LINE detected → stop & build virtual wall");
         odom_sub_.shutdown();
         sendRelativeGoal(-0.5, 0.0, 0.0);
         if (!waitForResult()) return;
         founded_orientation_ = true;
-        make_walls();
+         make_walls();
 
         publishState("FOUNDED_ORIENTATION");
 
