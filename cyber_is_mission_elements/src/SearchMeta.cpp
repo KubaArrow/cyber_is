@@ -84,17 +84,15 @@ SearchMeta::SearchMeta(
 void SearchMeta::executeSamplingSequence()
 {
     // 1. Wczytaj narożnik z parametrów i oblicz przekształcone próbki
-
-
     std::vector<std::pair<double,double>> local_samples;
     local_samples.reserve(samples_points_.size());
     for (const auto& op : samples_points_) {
         double sx = op.first + (have_corner ? cornerPoint.x : 0.0);
-        double sy = op.second + (have_corner ?  cornerPoint.y : 0.0);
+        double sy = op.second + (have_corner ? cornerPoint.y : 0.0);
         local_samples.emplace_back(sx, sy);
     }
     if (have_corner) {
-        ROS_INFO_STREAM("[SearchMeta] Local samples offset by corner: x+" << cornerPoint.x << ", y+" <<  cornerPoint.y);
+        ROS_INFO_STREAM("[SearchMeta] Local samples offset by corner: x+" << cornerPoint.x << ", y+" << cornerPoint.y);
     } else {
         ROS_WARN("[SearchMeta] corner_pose not set – using raw sample coordinates");
     }
@@ -107,51 +105,27 @@ void SearchMeta::executeSamplingSequence()
         init_rate.sleep();
     }
 
-    // 3. Przygotuj odwiedzone i zaczynamy iterować
+    // 3. Iteracja po wszystkich punktach po kolei
     ros::Rate rate(20);
-    std::vector<bool> visited(local_samples.size(), false);
     bool any_reached = false;
 
-    while (ros::ok() && !std::all_of(visited.begin(), visited.end(), [](bool v){ return v; })) {
-        // odświeżenie pozycji
-        ros::spinOnce();
-        double cur_x = current_pose_.position.x;
-        double cur_y = current_pose_.position.y;
-        double cur_yaw = tf2::getYaw(current_pose_.orientation);
-        ROS_INFO_STREAM("[SearchMeta] Current pose: ("<<cur_x<<", "<<cur_y<<"), yaw="<<cur_yaw);
-
-        // 3.1 wybór najbliższej nieodwiedzionej próbki w local_samples
-        size_t idx = 0;
-        double min_dist = std::numeric_limits<double>::infinity();
-        for (size_t i = 0; i < local_samples.size(); ++i) {
-            if (visited[i]) continue;
-            double dx = local_samples[i].first - cur_x;
-            double dy = local_samples[i].second - cur_y;
-            double d2 = dx*dx + dy*dy;
-            if (d2 < min_dist) {
-                min_dist = d2;
-                idx = i;
-            }
-        }
-        visited[idx] = true;
+    for (size_t idx = 0; idx < local_samples.size(); ++idx) {
         double sx = local_samples[idx].first;
         double sy = local_samples[idx].second;
-        ROS_INFO_STREAM("[SearchMeta] Next sample idx="<<idx<<" at ("<<sx<<", "<<sy<<")");
+        ROS_INFO_STREAM("[SearchMeta] Sample idx=" << idx << " at (" << sx << ", " << sy << ")");
 
-        // zapisz pozycję startową
-        geometry_msgs::Pose start_pose = current_pose_;
-
-        // 3.2 nawigacja do próbki
+        // 3.1 Nawigacja do próbki
         double yaw = yawFromFinalOrientation();
-        if (!std::isnan(yaw)) ROS_INFO_STREAM("[SearchMeta] Navigating with yaw="<<yaw);
+        if (!std::isnan(yaw))
+            ROS_INFO_STREAM("[SearchMeta] Navigating with yaw=" << yaw);
         sendGoal(sx, sy, yaw);
         if (!waitForResult(30.0)) {
-            ROS_WARN_STREAM("[SearchMeta] Navigation to sample "<<idx<<" failed");
+            ROS_WARN_STREAM("[SearchMeta] Navigation to sample " << idx << " failed");
             continue;
         }
         any_reached = true;
 
-        // 3.3 jazda powolna do przodu aż wykryje linię
+        // 3.2 Jazda powolna do przodu aż wykryje linię
         full_line_detected_ = false;
         ROS_INFO("[SearchMeta] Driving slowly until line detection...");
         geometry_msgs::Twist slow;
@@ -163,20 +137,19 @@ void SearchMeta::executeSamplingSequence()
         }
         stopRobot();
 
-        // 3.4 powrót do start_pose
+        // 3.3 Powrót do punktu, na którym dotarliśmy
         if (full_line_detected_) {
-            ROS_INFO_STREAM("[SearchMeta] Line detected – returning to start (" 
-                            << start_pose.position.x<<", "<<start_pose.position.y<<")");
-            double back_yaw = tf2::getYaw(start_pose.orientation);
-            sendGoal(start_pose.position.x, start_pose.position.y, back_yaw);
-            if (!waitForResult(60.0)) ROS_WARN("[SearchMeta] Return to start failed");
+            ROS_INFO_STREAM("[SearchMeta] Line detected – returning to sample (" << sx << ", " << sy << ")");
+            sendGoal(sx, sy, yaw);
+            if (!waitForResult(60.0))
+                ROS_WARN("[SearchMeta] Return to sample failed");
             stopRobot();
         } else {
-            ROS_WARN_STREAM("[SearchMeta] No line detected at sample "<<idx);
+            ROS_WARN_STREAM("[SearchMeta] No line detected at sample " << idx);
         }
     }
 
-    // 4. zakończenie sekwencji
+    // 4. Zakończenie sekwencji
     if (!any_reached) {
         ROS_ERROR("[SearchMeta] No samples reached – abort mission");
         publishAbort();
@@ -185,6 +158,7 @@ void SearchMeta::executeSamplingSequence()
         publishState("SAMPLING_COMPLETE");
     }
 }
+
 
 
 
