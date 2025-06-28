@@ -285,7 +285,7 @@
   <joint name="base_scan_joint" type="fixed">
     <!-- Umieszczenie skanera na środku ramy (x=0,y=0) i na wysokości scan_height nad podłożem.
          Base_link jest track_center_height nad podłożem, więc offset względem base_link to (scan_height - track_center_height). -->
-    <origin xyz="0 0 ${scan_height - chassis_top_height}" rpy="0 0 3.14159"/>
+    <origin xyz="0.02 0 ${scan_height - chassis_top_height}" rpy="0 0 3.14159"/>
     <parent link="base_link"/>
     <child link="base_scan"/>
   </joint>
