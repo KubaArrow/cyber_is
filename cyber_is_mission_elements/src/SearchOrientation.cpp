@@ -61,14 +61,14 @@ SearchOrientation::SearchOrientation(
 
 void SearchOrientation::executeSequence() {
     const double yaw = (turn_left_ ? M_PI / 2.0 : -M_PI / 2.0);
-    sendRelativeGoal(move_front_, 0.0, yaw);
+    sendRelativeGoal(move_front_+0.1, 0.0, yaw);
     if (!waitForResult()) {
         // Nie wysyłaj abort! Po prostu kończ sekwencję.
         return;
     }
 
     search_active_ = true;
-    sendRelativeGoal(move_side_, 0.0, 0.0);
+    sendRelativeGoal(move_front_+0.1, turn_left_ ? move_side_: -move_side_,yaw );
     if(mode_ == "safe") {
         if (!waitForResultWithAbordOnDone()) {
             // W środku tej funkcji już masz publishAbort()
@@ -99,7 +99,7 @@ void SearchOrientation::executeSequence() {
 // ————————————————————————————————————————— helpers ——————————————————————————————————————————————
 void SearchOrientation::sendRelativeGoal(const double dx, const double dy, const double dyaw) {
     move_base_msgs::MoveBaseGoal goal;
-    goal.target_pose.header.frame_id = "base_footprint"; // relative frame
+    goal.target_pose.header.frame_id = "map"; // relative frame
     goal.target_pose.header.stamp = ros::Time::now();
     goal.target_pose.pose.position.x = dx;
     goal.target_pose.pose.position.y = dy;
@@ -172,7 +172,8 @@ void SearchOrientation::lineCallback(const std_msgs::String::ConstPtr &msg) {
         ac_.cancelAllGoals();
         ROS_INFO("[SearchOrientation] FULL_LINE detected → stop & build virtual wall");
         odom_sub_.shutdown();
-        sendRelativeGoal(-0.5, 0.0, 0.0);
+        const double yaw = (turn_left_ ? M_PI / 2.0 : -M_PI / 2.0);
+        sendRelativeGoal(move_front_+0.1, turn_left_ ? move_side_-0.5: -move_side_+0.5,yaw );
         if (!waitForResult()) return;
         founded_orientation_ = true;
          make_walls();

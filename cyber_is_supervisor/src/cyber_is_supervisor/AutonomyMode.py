@@ -32,11 +32,17 @@ class AutonomyMode:
         elif self.state == "RESTART_MISSION":
             self.restart_mission()
         elif self.state=="START_MISSION":
-            self.leds_publisher.publish("FRONT_KITT_BLUE")
-            self.leds_publisher.publish("SIDE_BLUE_WAVE")
-        elif self.state=="FOUNDED_FINISH":
             self.leds_publisher.publish("FRONT_KITT_RED")
-            self.leds_publisher.publish("SIDE_RED_50")
+            self.leds_publisher.publish("SIDE_RED_25")
+        elif self.state=="FOUNDED_FINISH":
+            self.leds_publisher.publish("FRONT_KITT_BLUE")
+            self.leds_publisher.publish("SIDE_BLUE_100")
+            forward = Twist()
+            forward.linear.x = 0.1 
+            self.cmd_publisher.publish(forward)
+            rospy.sleep(1) 
+            forward.linear.x = 0.0
+            self.cmd_publisher.publish(forward)
 
 
 
@@ -55,13 +61,13 @@ class AutonomyMode:
 
 
     def prepare_mission(self):
-        self.leds_publisher.publish("FRONT_BLUE_BREATH")
-        self.leds_publisher.publish("SIDE_BLUE_LOAD")
+        self.leds_publisher.publish("FRONT_RED_BREATH")
+        self.leds_publisher.publish("SIDE_RED_LOAD")
         self.navigation_process = subprocess.Popen(['roslaunch', 'cyber_is_navigation', 'start_navigation.launch'])
         self.filters_process = subprocess.Popen(['roslaunch', 'cyber_is_filters', 'start_filters.launch'])
         self.mission_process = subprocess.Popen(['roslaunch', 'cyber_is_mission_elements', 'mission.launch'])
         rospy.sleep(10)
-        self.leds_publisher.publish("SIDE_BLUE_100")
+        self.leds_publisher.publish("SIDE_RED_25")
 
     def destroy_mission(self):
         self.running = False

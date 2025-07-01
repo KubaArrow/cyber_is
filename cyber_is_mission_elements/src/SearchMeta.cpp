@@ -135,6 +135,7 @@ void SearchMeta::executeSamplingSequence()
             ros::spinOnce();
             rate.sleep();
         }
+        ros::Duration(0.5).sleep();
         stopRobot();
 
         // 3.3 Powrót do punktu, na którym dotarliśmy

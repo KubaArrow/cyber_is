@@ -12,6 +12,8 @@ MagnetFilter::MagnetFilter(ros::NodeHandle& nh, const std::string& topic_name)
 
     sub_ = nh_.subscribe(input_topic_, 10, &MagnetFilter::callback, this);
     pub_ = nh_.advertise<std_msgs::Bool>(input_topic_ + "_filtered", 10);
+    robot_state_pub_ = nh_.advertise<std_msgs::String>("/robot_state", 10);
+
 
     ROS_INFO("LineFilter subscribed to: %s, publishing to: %s, min: %d, max: %d",
              input_topic_.c_str(), (input_topic_ + "_filtered").c_str(), min_, max_);
@@ -28,6 +30,9 @@ void MagnetFilter::callback(const std_msgs::Float64MultiArray::ConstPtr& msg)
         if (val >= min_ && (val <= max_ || !max_limit_))
         {
             result.data = true;
+            std_msgs::String state_msg;
+            state_msg.data = "FOUNDED_FINISH";
+            robot_state_pub_.publish(state_msg);
         }
         else
         {
