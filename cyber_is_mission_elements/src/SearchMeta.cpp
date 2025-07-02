@@ -156,7 +156,7 @@ void SearchMeta::executeSamplingSequence()
         publishAbort();
     } else {
         ROS_INFO("[SearchMeta] Sampling complete");
-        publishState("SAMPLING_COMPLETE");
+        publishState("ABORT_MISSION");
     }
 }
 

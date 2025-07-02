@@ -4,7 +4,7 @@ robot_radius: 0.07
 
 
 inflation_radius: 0.8
-cost_scaling_factor: 10.0
+cost_scaling_factor: 20.0
 
 transform_tolerance: 0.5  # wcześniej miałeś 0.5 lub 0.8
 resolution: 0.05

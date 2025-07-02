@@ -173,7 +173,7 @@ void SearchOrientation::lineCallback(const std_msgs::String::ConstPtr &msg) {
         ROS_INFO("[SearchOrientation] FULL_LINE detected → stop & build virtual wall");
         odom_sub_.shutdown();
         const double yaw = (turn_left_ ? M_PI / 2.0 : -M_PI / 2.0);
-        sendRelativeGoal(move_front_+0.1, turn_left_ ? move_side_-0.5: -move_side_+0.5,yaw );
+        sendRelativeGoal(move_front_+0.1,0,0 );
         if (!waitForResult()) return;
         founded_orientation_ = true;
          make_walls();
