@@ -1,0 +1,15 @@
+NavfnROS:
+  allow_unknown: true        # ← pozwala na planowanie przez nieznane obszary
+  default_tolerance: 0.2     # ← pozwala znaleźć cel nawet jeśli nie jest idealnie trafiony
+
+  planner_window_x: 4.0      # ← rozmiar okna planowania w osi X
+  planner_window_y: 4.0      # ← rozmiar okna planowania w osi Y
+
+  use_astar: false           # ← Dijkstra działa lepiej w złożonych przestrzeniach
+  visualize_potential: false # ← można ustawić true, jeśli chcesz wizualizować pole potencjału
+
+  lethal_cost: 253           # ← wartość kosztu powyżej której komórka jest nieprzejezdna
+  cost_factor: 0.55          # ← jak przelicza koszt z costmapy
+  neutral_cost: 66           # ← bazowy koszt komórek (50–70 dobrze sprawdza się w mieszkaniach)
+
+  publish_potential: false   # ← zazwyczaj niepotrzebne

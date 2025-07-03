@@ -78,7 +78,23 @@ SearchMeta::SearchMeta(
         make_walls();
     // Start sequence
     if (mode_ == "line") executeLineSequence();
+    else if (mode_ == "simple") executeSimpleSequence();
     else                 executeSamplingSequence();
+}
+
+void SearchMeta::executeSimpleSequence(){
+     ros::Rate rate(20);
+      full_line_detected_ = false;
+        ROS_INFO("[SearchMeta] Driving slowly until line detection...");
+        geometry_msgs::Twist slow;
+        slow.linear.x = 0.05;
+        while (ros::ok() && !full_line_detected_) {
+            vel_pub_.publish(slow);
+            ros::spinOnce();
+            rate.sleep();
+        }
+        ros::Duration(0.5).sleep();
+        stopRobot();
 }
 
 void SearchMeta::executeSamplingSequence()

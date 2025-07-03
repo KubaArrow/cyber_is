@@ -56,6 +56,7 @@ private:
     // sequences
     void executeLineSequence();
     void executeSamplingSequence();
+    void executeSimpleSequence();
 
     // helpers
     void sendRelativeGoal(double dx, double dy, double dyaw);
@@ -69,6 +70,7 @@ private:
     void publishAbort() const;
     void publishState(const std::string &msg) const;
     void make_walls();
+
 };
 
 #endif // SEARCHMETA_H
