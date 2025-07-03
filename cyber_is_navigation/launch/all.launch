@@ -1,9 +1,0 @@
-<launch>
-    <include file="$(find cyber_is_navigation)/launch/localization2.launch"/>
-
-    <include file="$(find cyber_is_navigation)/launch/slam/hector.launch"/>
-<!--    <include file="$(find cyber_is_navigation)/launch/slam/gmapping.launch"/>-->
-
-<!--    <include file="$(find cyber_is_navigation)/launch/move_base.launch"/>-->
-
-</launch>
