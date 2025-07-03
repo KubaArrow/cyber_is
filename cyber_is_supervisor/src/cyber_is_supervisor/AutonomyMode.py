@@ -63,7 +63,11 @@ class AutonomyMode:
     def prepare_mission(self):
         self.leds_publisher.publish("FRONT_RED_BREATH")
         self.leds_publisher.publish("SIDE_RED_LOAD")
-        self.navigation_process = subprocess.Popen(['roslaunch', 'cyber_is_navigation', 'start_navigation.launch'])
+        n_mode = rospy.get_param('/nav_type', "n")
+        if(n_mode==n):
+            self.navigation_process = subprocess.Popen(['roslaunch', 'cyber_is_navigation', 'start_navigation.launch'])
+        else:
+            self.navigation_process = subprocess.Popen(['roslaunch', 'cyber_is_navigation', 'start_navigation_p.launch'])
         self.filters_process = subprocess.Popen(['roslaunch', 'cyber_is_filters', 'start_filters.launch'])
         self.mission_process = subprocess.Popen(['roslaunch', 'cyber_is_mission_elements', 'mission.launch'])
         rospy.sleep(10)
