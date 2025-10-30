@@ -1,58 +1,65 @@
 #!/usr/bin/env python3
+
 import rospy
 from std_msgs.msg import UInt8MultiArray
 
-# Układ LED-ów zgodnie z rysunkiem (indeksy jako stringi)
+# Grid layout for ANSI preview
 led_layout = [
-    [" ", " ", " ", "","","5", "6",  "7",  "8"," ", " ", " "],
-    [" ", " ", " ", " ", " ", " ", " ", " ", " "],
-    [" ", " ", " ", " ", " ", " ", " ", " ", " "],
-    [" ", "4", " ", " ", " ", " ", " ", " ", " ", " ", " ", "9", " "],
-    [" ", "3", " ", " ", " ", " ", " ", " ", " ", " ", " ", "10", " "],
-    [" ", "2", " ", " ", " ", " ", " ", " ", " ", " ", " ", "11", " "],
-    [" ", "1", " ", " ", " ", " ", " ", " ", " ", " ", " ", "12", " "],
-    [" ", "0", " ", " ", " ", " ", " ",  " ", " ", " ", " ","13", " "],
-    [" ", " ", " ", " ", " ", " ", " ", " ", " "],
-
-    [ " ", " ", " ", "17", "16", " "," ", " ", " ", "15", "14"],
+    [" ", " ", " ", "",  "","9",  "10", "11", "12", "13", " ",  " ",  " ",  " "],
+    [" ", "8",  " ", " ",  " ",  " ", " ",  " ",  " ",  " ",  "", " ",  "14", " "],
+    [" ", "7",  " ", " ",  " ",  " ", " ",  " ",  " ",  " ",   ""," ",  "15", " "],
+    [" ", "6",  " ", " ",  " ",  " ", " ",  " ",  " ",  " ",  "", " ",  "16", " "],
+    [" ", "5",  " ", " ",  " ",  " ", " ",  " ",  " ",  " ",  "", " ",  "17", " "],
+    [" ", "4",  " ", " ",  " ",  " ", " ",  " ",  " ",  " ",  "", " ",  "18", " "],
+    [" ", "3",  " ", " ",  " ",  " ", " ",  " ",  " ",  " ",  "", " ",  "19", " "],
+    [" ", "2",  " ", " ",  " ",  " ", " ",  " ",  " ",  " ",  "", " ",  "20", " "],
+    [" ", "1",  " ", " ",  " ",  " ", " ",  " ",  " ",  " ",  "", " ",  "21", " "],
+    [" ", "0",  " ", " ",  " ",  " ", " ",  " ",  " ",  " ",  "", " ",  "22", " "],
 ]
 
+NUM_LEDS = 23  # 9 left + 6 front + 9 right
+
+
 def display_leds_callback(msg: UInt8MultiArray):
+    """Render LEDs in terminal using ANSI background colors."""
     print("\033c", end="")  # clear screen
 
-    num_leds = 18
-    if len(msg.data) < num_leds * 4:
-        rospy.logwarn("Oczekiwano %d bajtów, otrzymano %d", num_leds * 4, len(msg.data))
+    expected_bytes = NUM_LEDS * 4
+    if len(msg.data) < expected_bytes:
+        rospy.logwarn(
+            "Oczekiwano %d bajtów, otrzymano %d", expected_bytes, len(msg.data)
+        )
         return
 
-    # Wyciągnij kolory (RGB, pomijamy Alpha)
-    colors = []
-    for i in range(num_leds):
-        base = i * 4
-        r = msg.data[base]
-        g = msg.data[base + 1]
-        b = msg.data[base + 2]
-        colors.append((r, g, b))
+    # Extract RGB tuples (skip Alpha channel)
+    colors = [
+        (msg.data[i * 4], msg.data[i * 4 + 1], msg.data[i * 4 + 2])
+        for i in range(NUM_LEDS)
+    ]
 
-    # Wyświetl zgodnie z układem
+    # Print according to the layout
     for row in led_layout:
         line = ""
         for cell in row:
             if cell.strip().isdigit():
-                index = int(cell)
-                r, g, b = colors[index]
-                line += f"\033[48;2;{r};{g};{b}m  \033[0m"  # kolorowy blok z odstępem
+                idx = int(cell)
+                r, g, b = colors[idx]
+                line += f"\033[48;2;{r};{g};{b}m  \033[0m"
             else:
-                line += "   "  # pusty blok (3 spacje dla wyrównania)
+                line += "   "  # empty placeholder (3 spaces)
         print(line)
+
 
 def main():
     rospy.init_node("led_visualizer", anonymous=True)
     rospy.Subscriber("/leds", UInt8MultiArray, display_leds_callback)
-    rospy.loginfo("LED Visualizer node uruchomiony. Nasłuchiwanie na topicu /leds")
+    rospy.loginfo(
+        "LED Visualizer node uruchomiony. Nasłuchiwanie na topicu /leds (24 diody)"
+    )
     rospy.spin()
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     try:
         main()
     except rospy.ROSInterruptException:
