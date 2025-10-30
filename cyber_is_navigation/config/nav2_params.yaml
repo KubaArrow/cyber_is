@@ -1,0 +1,200 @@
+amcl:
+  ros__parameters:
+    use_sim_time: false
+    min_particles: 500
+    max_particles: 1000
+    update_min_d: 0.15
+    update_min_a: 0.15
+    resample_interval: 1
+    transform_tolerance: 0.25
+    laser_min_range: 0.05
+    laser_max_range: 12.0
+    laser_model_type: likelihood_field
+    set_initial_pose: false
+    always_reset_initial_pose: false
+    first_map_only: false
+    save_pose_rate: 0.5
+    tf_broadcast: true
+    odom_frame_id: odom
+    base_frame_id: base_link
+    global_frame_id: map
+
+map_server:
+  ros__parameters:
+    use_sim_time: false
+    # Zastąp w launchu: yaml_filename:=<ścieżka>
+    yaml_filename: ''
+    frame_id: map
+
+planner_server:
+  ros__parameters:
+    use_sim_time: false
+    expected_planner_frequency: 1.5
+    planner_plugins: ["GridBased"]
+    GridBased:
+      plugin: "nav2_smac_planner/SmacPlanner2D"
+      tolerance: 0.25
+      downsample_costmap: false
+      allow_unknown: true
+      motion_model_for_search: "Dubin"
+      use_astar: true
+      smooth_path: true
+
+controller_server:
+  ros__parameters:
+    use_sim_time: false
+    controller_frequency: 10.0
+    min_x_velocity_threshold: 0.01
+    min_theta_velocity_threshold: 0.01
+    odom_topic: odom
+    progress_checker_plugin: "progress_checker"
+    goal_checker_plugins: ["general_goal_checker"]
+    controller_plugins: ["FollowPath"]
+
+    progress_checker:
+      plugin: "nav2_controller/ProgressChecker"
+      required_movement_radius: 0.5
+      movement_time_allowance: 10.0
+
+    general_goal_checker:
+      plugin: "nav2_controller/GeneralGoalChecker"
+      xy_goal_tolerance: 0.25
+      yaw_goal_tolerance: 0.25
+      stateful: true
+
+    FollowPath:
+      plugin: "nav2_regulated_pure_pursuit_controller/RegulatedPurePursuitController"
+      desired_linear_vel: 0.4
+      max_angular_accel: 1.0
+      lookahead_dist: 0.6
+      min_lookahead_dist: 0.4
+      max_lookahead_dist: 0.8
+      lookahead_time: 1.5
+      transform_tolerance: 0.25
+      use_velocity_scaled_lookahead_dist: true
+      use_rotate_to_heading: true
+      allow_reversing: false
+      regulate_and_cut_lookahead: true
+      use_collision_detection: true
+
+bt_navigator:
+  ros__parameters:
+    use_sim_time: false
+    global_frame: map
+    robot_base_frame: base_link
+    odom_frame: odom
+    # Ustawiane w launchu na plik z nav2_bt_navigator/behavior_trees
+    default_bt_xml_filename: ""
+    plugin_lib_names:
+      - nav2_compute_path_to_pose_action_bt_node
+      - nav2_compute_path_through_poses_action_bt_node
+      - nav2_smooth_path_action_bt_node
+      - nav2_follow_path_action_bt_node
+      - nav2_spin_action_bt_node
+      - nav2_wait_action_bt_node
+      - nav2_back_up_action_bt_node
+      - nav2_drive_on_heading_bt_node
+      - nav2_clear_costmap_service_bt_node
+      - nav2_is_stuck_condition_bt_node
+      - nav2_goal_reached_condition_bt_node
+      - nav2_goal_updated_condition_bt_node
+      - nav2_initial_pose_received_condition_bt_node
+      - nav2_goal_pose_condition_bt_node
+      - nav2_is_path_valid_condition_bt_node
+      - nav2_time_expired_condition_bt_node
+      - nav2_distance_traveled_condition_bt_node
+      - nav2_path_expiring_timer_condition
+      - nav2_rate_controller_bt_node
+      - nav2_distance_controller_bt_node
+      - nav2_speed_controller_bt_node
+      - nav2_truncate_path_action_bt_node
+      - nav2_truncate_path_local_action_bt_node
+      - nav2_goal_checker_selector_bt_node
+      - nav2_controller_selector_bt_node
+      - nav2_planner_selector_bt_node
+      - nav2_smoother_selector_bt_node
+      - nav2_pause_resume_action_bt_node
+      - nav2_recovery_node_bt_node
+      - nav2_pipeline_sequence_bt_node
+      - nav2_round_robin_node_bt_node
+      - nav2_transform_available_condition_bt_node
+      - nav2_tf_passthrough_bt_node
+      - nav2_goal_updater_node_bt_node
+      - nav2_path_longer_on_approach_bt_node
+      - nav2_reinitialize_global_localization_service_bt_node
+      - nav2_rate_controller_bt_node
+      - nav2_time_controller_bt_node
+      - nav2_distance_controller_bt_node
+
+behavior_server:
+  ros__parameters:
+    use_sim_time: false
+    global_frame: map
+    robot_base_frame: base_link
+    transform_tolerance: 0.25
+    server_frequency: 10.0
+    plugin_lib_names:
+      - nav2_spin_behavior_server
+      - nav2_back_up_behavior_server
+      - nav2_drive_on_heading_behavior_server
+
+global_costmap:
+  global_costmap:
+    ros__parameters:
+      use_sim_time: false
+      global_frame: map
+      robot_base_frame: base_link
+      update_frequency: 2.0
+      publish_frequency: 2.0
+      resolution: 0.05
+      rolling_window: false
+      track_unknown_space: true
+      transform_tolerance: 0.25
+      plugins: [
+        {name: static_layer,   type: "nav2_costmap_2d/StaticLayer"},
+        {name: inflation_layer, type: "nav2_costmap_2d/InflationLayer"}
+      ]
+      static_layer:
+        map_subscribe_transient_local: true
+      inflation_layer:
+        inflation_radius: 0.65
+        cost_scaling_factor: 3.5
+
+local_costmap:
+  local_costmap:
+    ros__parameters:
+      use_sim_time: false
+      global_frame: odom
+      robot_base_frame: base_link
+      update_frequency: 10.0
+      publish_frequency: 10.0
+      width: 6.0
+      height: 6.0
+      resolution: 0.05
+      rolling_window: true
+      transform_tolerance: 0.25
+      plugins: [
+        {name: obstacle_layer, type: "nav2_costmap_2d/ObstacleLayer"},
+        {name: inflation_layer, type: "nav2_costmap_2d/InflationLayer"}
+      ]
+      obstacle_layer:
+        observation_sources: scan
+        scan:
+          topic: scan
+          max_obstacle_height: 2.0
+          min_obstacle_height: 0.0
+          obstacle_range: 2.5
+          raytrace_range: 3.0
+          clearing: true
+          marking: true
+      inflation_layer:
+        inflation_radius: 0.65
+        cost_scaling_factor: 3.5
+
+lifecycle_manager:
+  ros__parameters:
+    use_sim_time: false
+    autostart: true
+    node_names: ["map_server", "amcl", "controller_server", "planner_server", "bt_navigator", "behavior_server"]
+    bond_timeout: 0.0
+    transform_tolerance: 0.25

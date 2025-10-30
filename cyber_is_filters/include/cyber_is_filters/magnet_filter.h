@@ -1,25 +1,27 @@
 #pragma once
 
-#include <ros/ros.h>
-#include <std_msgs/Float64MultiArray.h>
-#include <std_msgs/Bool.h>
 #include <cmath>
-#include <std_msgs/String.h> 
+#include <memory>
+#include <string>
 
-class MagnetFilter
+#include <rclcpp/rclcpp.hpp>
+#include <std_msgs/msg/float64_multi_array.hpp>
+#include <std_msgs/msg/bool.hpp>
+#include <std_msgs/msg/string.hpp>
+
+class MagnetFilter : public rclcpp::Node
 {
 public:
-    MagnetFilter(ros::NodeHandle& nh, const std::string& topic_name);
+    MagnetFilter();
 
 private:
-    ros::NodeHandle nh_;
-    ros::Subscriber sub_;
-    ros::Publisher pub_;
-    ros::Publisher robot_state_pub_;
+    rclcpp::Subscription<std_msgs::msg::Float64MultiArray>::SharedPtr sub_;
+    rclcpp::Publisher<std_msgs::msg::Bool>::SharedPtr pub_;
+    rclcpp::Publisher<std_msgs::msg::String>::SharedPtr robot_state_pub_;
     std::string input_topic_;
-    bool max_limit_;
-    int min_;
-    int max_;
+    bool max_limit_{};
+    int min_{};
+    int max_{};
 
-    void callback(const std_msgs::Float64MultiArray::ConstPtr& msg);
+    void callback(const std_msgs::msg::Float64MultiArray::SharedPtr msg);
 };

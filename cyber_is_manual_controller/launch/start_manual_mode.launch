@@ -1,7 +1,0 @@
-<launch>
-    <!-- MJPG Streamer jako node -->
-<!--    <node name="mjpg_streamer" pkg="cyber_is_manual_controller" type="start_streamer_node.py"/>-->
-
-    <!-- Relay z /cmd_vel_app na /cmd_vel -->
-    <node name="cmd_vel_relay" pkg="topic_tools" type="relay" args="/cmd_vel_app /cmd_vel"/>
-</launch>

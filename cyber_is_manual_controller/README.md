@@ -1,96 +1,103 @@
 
-# Manual Mode ROS Package
+# Manual Mode (ROS 2 Humble)
 
-This ROS package enables **manual control mode** for a mobile robot in ROS Noetic. It provides:
+This ROS 2 (Humble) package enables **manual control mode** for a mobile robot. It provides:
 
-- Streaming from a USB camera via `mjpg_streamer`.
-- Forwarding of velocity commands from `/cmd_vel_app` to `/cmd_vel`.
+- Joystick teleoperation (`sensor_msgs/Joy` -> `geometry_msgs/Twist`) in `rclpy`.
+- Optional USB camera streaming via `mjpg_streamer`.
 
 ## 🧰 Features
 
-- Launches `mjpg_streamer` with the desired resolution and framerate.
-- Forwards velocity commands using `topic_tools/relay`.
-- Launchable via a single ROS launch file.
+- rclpy joystick teleop with configurable axes, scales and deadman.
+- Sensor-data QoS for robust input from `joy` driver.
+- Optional `mjpg_streamer` runner.
 
 ---
 
 ## 📦 Installation
 
-1. **Clone this repository (or copy this package) into your ROS workspace:**
+1. Place this package in your ROS 2 workspace `src` and install dependencies:
 
 ```bash
-cd ~/catkin_ws/src
-git clone <your repository url> manual_mode
+sudo apt install ros-humble-rclpy ros-humble-sensor-msgs ros-humble-geometry-msgs ros-humble-joy
 ```
 
-2. **Install MJPG-Streamer:**
+2. (Optional) Install MJPG-Streamer if you want camera streaming:
 
 ```bash
 sudo apt update
 sudo apt install cmake libjpeg8-dev
-cd ~/catkin_ws/src/cyber_is/cyber_is_manual_controller/
+cd ~/ros2_ws/src/cyber_is/cyber_is_manual_controller/
 git clone https://github.com/jacksonliam/mjpg-streamer.git
 cd mjpg-streamer/mjpg-streamer-experimental
 make
 ```
 
-3. **Make the stream launcher script executable:**
+3. Build with colcon and source:
 
 ```bash
-chmod +x ~/catkin_ws/src/cyber_is/cyber_is_manual_controller/bash/start_streamer.sh
-```
-
-4. **Build the workspace:**
-
-```bash
-cd ~/catkin_ws
-catkin_make
-```
-
-5. **Source the workspace:**
-
-```bash
-source devel/setup.bash
+cd ~/ros2_ws
+colcon build --packages-select cyber_is_manual_controller
+source install/setup.bash
 ```
 
 ---
 
 ## ▶️ Usage
 
-To start manual mode (camera stream + velocity relay), run:
+Start the ROS 2 `joy` driver (adjust device as needed):
 
 ```bash
-roslaunch manual_mode manual_mode.launch
+ros2 run joy joy_node
 ```
 
-- The MJPG video stream will be available at:  
-  `http://<robot_ip>:8080/stream`
+Launch manual mode (joystick teleop; optional streamer):
 
-- The `/cmd_vel_app` topic will be relayed to `/cmd_vel` for manual driving.
+```bash
+ros2 launch cyber_is_manual_controller start_manual_mode.launch.py start_streamer:=false
+```
+
+- Teleop publishes `Twist` to `/cmd_vel` by default.
+- To change mappings/scales:
+
+```bash
+ros2 launch cyber_is_manual_controller start_manual_mode.launch.py \
+  axis_linear:=1 axis_angular:=0 scale_linear:=0.5 scale_angular:=1.0 deadman_button:=-1 \
+  output_topic:=/cmd_vel joy_topic:=/joy
+```
+
+If `start_streamer:=true`, MJPG-Streamer starts. Stream is available at:
+
+```
+http://<robot_ip>:8080/stream
+```
 
 ---
 
 ## 📝 Notes
 
-- MJPG-Streamer must be located inside:
-  ```
-  manual_mode/mjpg-streamer/mjpg-streamer-experimental/
-  ```
-- The USB camera is expected at `/dev/video0`. You can change this in `scripts/start_streamer.sh`.
+- MJPG-Streamer expected path after build:
+  `cyber_is_manual_controller/mjpg-streamer/mjpg-streamer-experimental/`
+- The USB camera is expected at `/dev/video0`. Adjust `bash/start_streamer.sh` as needed.
 
 ---
 
 ## 📁 Directory Structure
 
 ```
-manual_mode/
+cyber_is_manual_controller/
 ├── launch/
-│   └── manual_mode.launch
-├── scripts/
+│   └── start_manual_mode.launch.py
+├── bash/
 │   └── start_streamer.sh
-├── mjpg-streamer/
-│   └── mjpg-streamer-experimental/
-├── CMakeLists.txt
+├── src/cyber_is_manual_controller/
+│   ├── __init__.py
+│   ├── joystick_node.py
+│   └── streamer.py
+├── resource/
+│   └── cyber_is_manual_controller
+├── setup.py
+├── setup.cfg
 └── package.xml
 ```
 
@@ -98,8 +105,8 @@ manual_mode/
 
 ## 🧪 Tested On
 
-- Ubuntu 20.04
-- ROS Noetic
+- Ubuntu 22.04
+- ROS 2 Humble
 - MJPG-Streamer (UVCCapture plugin)
 
 ---

@@ -1,0 +1,8 @@
+leds_controller:
+  ros__parameters:
+    leds_topic: "/leds"
+    state_topic: "/leds_mode"
+    side_leds: 9
+    front_leds: 5
+    frequency: 12
+

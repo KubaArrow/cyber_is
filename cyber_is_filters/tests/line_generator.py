@@ -1,24 +1,33 @@
 #!/usr/bin/env python3
 
-import rospy
-import random
+import rclpy
+from rclpy.node import Node
 from std_msgs.msg import UInt16MultiArray
 
-def publisher():
-    rospy.init_node('line_generator')
-    pub = rospy.Publisher('/line_detector', UInt16MultiArray, queue_size=10)
-    rate = rospy.Rate(1)  # 1 Hz
 
-    while not rospy.is_shutdown():
+class LineGenerator(Node):
+    def __init__(self):
+        super().__init__('line_generator')
+        self.pub = self.create_publisher(UInt16MultiArray, '/line_detector', 10)
+        # 1 Hz timer
+        self.timer = self.create_timer(1.0, self.timer_cb)
+
+    def timer_cb(self):
         msg = UInt16MultiArray()
-        #msg.data = [random.randint(0, 1000) for _ in range(5)]
-        msg.data = [2200,3100,0,3100,2800]
-        rospy.loginfo(f"Publishing: {msg.data}")
-        pub.publish(msg)
-        rate.sleep()
+        msg.data = [2200, 3100, 0, 3100, 2800]
+        self.get_logger().info(f'Publishing: {msg.data}')
+        self.pub.publish(msg)
+
+
+def main():
+    rclpy.init()
+    node = LineGenerator()
+    try:
+        rclpy.spin(node)
+    finally:
+        node.destroy_node()
+        rclpy.shutdown()
+
 
 if __name__ == '__main__':
-    try:
-        publisher()
-    except rospy.ROSInterruptException:
-        pass
+    main()

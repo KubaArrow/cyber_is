@@ -1,0 +1,7 @@
+supervisor:
+  ros__parameters:
+    initial_mode: "MANUAL"
+    nav_type: "n"
+    enable_echo: true
+    heartbeat_period: 1.0
+

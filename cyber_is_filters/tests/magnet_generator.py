@@ -1,22 +1,34 @@
 #!/usr/bin/env python3
-import rospy
-from std_msgs.msg import Float64MultiArray
 import random
 
-def magnet_generator():
-    rospy.init_node('magnet_generator')
-    pub = rospy.Publisher('/magnet', Float64MultiArray, queue_size=10)
-    rate = rospy.Rate(10)  # 10 Hz
+import rclpy
+from rclpy.node import Node
+from std_msgs.msg import Float64MultiArray
 
-    while not rospy.is_shutdown():
+
+class MagnetGenerator(Node):
+    def __init__(self):
+        super().__init__('magnet_generator')
+        self.pub = self.create_publisher(Float64MultiArray, '/magnet', 10)
+        # 10 Hz timer
+        self.timer = self.create_timer(0.1, self.timer_cb)
+
+    def timer_cb(self):
         msg = Float64MultiArray()
-        msg.data = [random.randint(0, 1000) for _ in range(3)]  # np. wartości XYZ pola magnetycznego
-        pub.publish(msg)
-        rospy.loginfo(f"Published /magnet: {msg.data}")
-        rate.sleep()
+        msg.data = [random.randint(0, 1000) for _ in range(3)]
+        self.pub.publish(msg)
+        self.get_logger().info(f'Published /magnet: {msg.data}')
+
+
+def main():
+    rclpy.init()
+    node = MagnetGenerator()
+    try:
+        rclpy.spin(node)
+    finally:
+        node.destroy_node()
+        rclpy.shutdown()
+
 
 if __name__ == '__main__':
-    try:
-        magnet_generator()
-    except rospy.ROSInterruptException:
-        pass
+    main()

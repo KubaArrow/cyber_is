@@ -1,15 +1,15 @@
 from cyber_is_led_controller.leds_front import Front
-from cyber_is_led_controller.leds_side  import Side
-import rospy
+from cyber_is_led_controller.leds_side import Side
+import logging
 
 class LedsController:
-    def __init__(self):
-        self.side_leds  = rospy.get_param("/led_controller/side_leds", 9)
-        self.front_leds = rospy.get_param("/led_controller/front_leds", 6)
+    def __init__(self, side_leds: int, front_leds: int):
+        self.side_leds = int(side_leds)
+        self.front_leds = int(front_leds)
 
-        self.f  = Front(self.front_leds)
-        self.ls = Side(self.side_leds,  True)   # ← True z wielkiej litery
-        self.rs = Side(self.side_leds,  False)
+        self.f = Front(self.front_leds)
+        self.ls = Side(self.side_leds, True)
+        self.rs = Side(self.side_leds, False)
 
     # --------------- publikacja ---------------
 
@@ -30,7 +30,7 @@ class LedsController:
             self.ls.set_mode(mode)
             self.rs.set_mode(mode)
         else:
-            rospy.logwarn(f"Nieobsługiwany tryb: {mode}")
+            logging.getLogger(__name__).warning(f"Nieobsługiwany tryb: {mode}")
 
     # --------------- animacje ---------------
 
