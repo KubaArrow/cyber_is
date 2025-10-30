@@ -3,10 +3,15 @@ project(cyber_is_navigation)
 
 find_package(ament_cmake REQUIRED)
 
-install(DIRECTORY
-  launch
-  config
-  DESTINATION share/${PROJECT_NAME}
+# Install only ROS 2 launch and config
+install(FILES
+  launch/start_navigation.launch.py
+  DESTINATION share/${PROJECT_NAME}/launch
+)
+
+install(FILES
+  config/nav2_params.yaml
+  DESTINATION share/${PROJECT_NAME}/config
 )
 
 ament_package()
