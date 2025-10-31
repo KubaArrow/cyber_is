@@ -39,5 +39,7 @@
 
 
   <!-- The export tag contains other, unspecified, tags -->
-  <export/>
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
 </package>
