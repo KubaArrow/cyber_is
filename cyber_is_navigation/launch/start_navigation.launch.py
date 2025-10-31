@@ -12,6 +12,10 @@ def generate_launch_description():
     params_file = LaunchConfiguration('params_file')
     map_yaml = LaunchConfiguration('map')
     autostart = LaunchConfiguration('autostart')
+    # BehaviorServer plugin name can differ across Nav2 builds. Detectable via
+    # `ros2 component types | grep -i behavior`. On your system it is
+    # `behavior_server::BehaviorServer` (not `nav2_behaviors::BehaviorServer`).
+    behavior_plugin = LaunchConfiguration('behavior_plugin')
 
     # Default params file from this package
     default_params = os.path.join(
@@ -75,7 +79,7 @@ def generate_launch_description():
             # Behavior Server
             ComposableNode(
                 package='nav2_behaviors',
-                plugin='nav2_behaviors::BehaviorServer',
+                plugin=behavior_plugin,
                 name='behavior_server',
                 parameters=[params_file],
                 extra_arguments=[{'use_intra_process_comms': True}],
@@ -122,6 +126,11 @@ def generate_launch_description():
         DeclareLaunchArgument(
             'autostart', default_value='true',
             description='Automatically startup the nav2 stack'
+        ),
+        DeclareLaunchArgument(
+            'behavior_plugin',
+            default_value='behavior_server::BehaviorServer',
+            description='Fully-qualified Behavior Server component plugin name'
         ),
         container,
         lifecycle_manager,
