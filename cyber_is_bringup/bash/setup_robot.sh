@@ -18,7 +18,7 @@ export ROS_DOMAIN_ID=2
 # --- Launch
 exec ros2 launch cyber_is_bringup is_bringup.launch.py \
   start_description:=true \
-  use_gui:=false \
+  use_gui:=true \
   start_navigation:=true \
   autostart:=true \
   map:=/home/is/cyber_ws/src/cyber_is/maps/map.yaml \
