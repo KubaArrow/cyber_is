@@ -112,18 +112,17 @@ ros2 launch cyber_is_description display.launch.py use_gui:=false
 Example systemd unit to start the ROS 2 bringup (adjust paths and user):
 ```ini
 [Unit]
-[Unit]
 Description=Cyber IS Bringup (ROS 2 Humble)
 After=network-online.target time-sync.target
 Wants=network-online.target
 
 [Service]
 Type=simple
-User=victoria
-WorkingDirectory=/home/victoria/cyber_ws
+User=is
+WorkingDirectory=/home/is/cyber_ws
 # Daj chwilę na podniesienie się sieci/USB
 ExecStartPre=/bin/sleep 3
-ExecStart=/home/victoria/cyber_ws/src/cyber_is/cyber_is_bringup/bash/setup_robot.sh
+ExecStart=/home/is/cyber_ws/src/cyber_is/cyber_is_bringup/bash/setup_robot.sh
 Restart=always
 RestartSec=5
 KillSignal=SIGINT
@@ -143,7 +142,7 @@ WantedBy=multi-user.target
 Activation:
 ```bash
 sudo nano /etc/systemd/system/cyber-is-bringup.service  # paste and adjust the template above
-chmod +x /home/victoria/cyber_ws/src/cyber_is/cyber_is_bringup/bash/setup_robot.sh
+chmod +x /home/is/cyber_ws/src/cyber_is/cyber_is_bringup/bash/setup_robot.sh
 
 sudo systemctl daemon-reload
 sudo systemctl enable cyber-is-bringup.service
