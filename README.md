@@ -25,7 +25,10 @@ sudo apt update && sudo apt install -y \
   ros-humble-nav2-bt-navigator ros-humble-nav2-behaviors ros-humble-nav2-lifecycle-manager ros-humble-nav2-amcl ros-humble-nav2-map-server \
   ros-humble-joy \
   ros-humble-rmw-cyclonedds-cpp \
-  ros-humble-rosbridge-server ros-humble-rosapi
+  ros-humble-rosbridge-server ros-humble-rosapi \
+  ros-humble-xacro ros-humble-robot-state-publisher ros-humble-urdf \ 
+  ros-humble-tf2-ros ros-humble-tf2-tools ros-humble-tf2-geometry-msgs ros-humble-tf-transformations \
+  ros-humble-joint-state-publisher ros-humble-joint-state-publisher-gui ros-humble-rviz2
 ```
 
 Add the user to the `dialout` group for access to `/dev/ttyACM0`:

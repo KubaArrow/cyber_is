@@ -227,8 +227,8 @@
   </joint>
 
   <!-- Połączenia (joints) między linkami -->
-  <!-- Stałe połączenie base_link (na ziemi) z imu (ramą) -->
-  <joint name="imu_joint" type="continuous">
+  <!-- Stałe połączenie base_link z imu (ramą) -->
+  <joint name="imu_joint" type="fixed">
     <!-- Pozycja: z przodu (x = +half długości), na lewo (y = +half rozstawu), na wysokości osi (z = track_center_height) -->
     <origin xyz="0 0 0" rpy="0 0 0"/>
     <parent link="base_link"/>
@@ -236,9 +236,8 @@
     <!-- Oś obrotu: pozioma, w poprzek pojazdu (oś Y układu bazowego) -->
   </joint>
 
-  <!-- Połączenia (joints) między linkami -->
-  <!-- Stałe połączenie base_link (na ziemi) z imu (ramą) -->
-  <joint name="line_detector_joint" type="continuous">
+  <!-- Połączenie stałe base_link z line_detector -->
+  <joint name="line_detector_joint" type="fixed">
     <!-- Pozycja: z przodu (x = +half długości), na lewo (y = +half rozstawu), na wysokości osi (z = track_center_height) -->
     <origin xyz="${frame_length/2 +0.005} 0 -${chassis_height}" rpy="0 0 0"/>
     <parent link="base_link"/>
