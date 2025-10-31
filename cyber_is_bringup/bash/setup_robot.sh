@@ -20,9 +20,18 @@ export ROS_DOMAIN_ID=2
 # When USE_SLAM=true, Nav2 starts without map_server/AMCL and slam_toolbox provides /map.
 USE_SLAM=${USE_SLAM:-false}
 
+# Headless-safe GUI toggle: disable GUI if no DISPLAY unless overridden via USE_GUI
+if [ -z "${USE_GUI+x}" ]; then
+  if [ -n "${DISPLAY:-}" ]; then
+    USE_GUI=true
+  else
+    USE_GUI=false
+  fi
+fi
+
 COMMON_ARGS=(
   start_description:=true
-  use_gui:=true
+  use_gui:=${USE_GUI}
   start_navigation:=true
   autostart:=true
   start_uart_bridge:=true

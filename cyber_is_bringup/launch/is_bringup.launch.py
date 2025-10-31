@@ -96,7 +96,10 @@ def generate_launch_description() -> LaunchDescription:
             'map': map_yaml,
             'autostart': autostart,
         }.items(),
-        condition=IfCondition(PythonExpression([start_navigation, ' and not ', use_slam])),
+        # Evaluate booleans safely: "true"/"false" strings -> Python True/False
+        condition=IfCondition(PythonExpression([
+            '"', start_navigation, '" == "true" and not ("', use_slam, '" == "true")'
+        ])),
     )
 
     navigation_slam_launch = IncludeLaunchDescription(
@@ -109,7 +112,9 @@ def generate_launch_description() -> LaunchDescription:
             'slam_params_file': slam_params_file,
             'autostart': autostart,
         }.items(),
-        condition=IfCondition(PythonExpression([start_navigation, ' and ', use_slam])),
+        condition=IfCondition(PythonExpression([
+            '"', start_navigation, '" == "true" and "', use_slam, '" == "true"'
+        ])),
     )
 
     # LIDAR (ld14p.launch.py)

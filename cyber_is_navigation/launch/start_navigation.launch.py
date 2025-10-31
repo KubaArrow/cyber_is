@@ -42,6 +42,7 @@ def generate_launch_description():
         arguments=['--ros-args', '--log-level', 'info'],
         composable_node_descriptions=[
             # Map Server
+            # Map Server (do NOT force intra-process: it publishes Transient Local map)
             ComposableNode(
                 package='nav2_map_server',
                 plugin='nav2_map_server::MapServer',
@@ -50,7 +51,6 @@ def generate_launch_description():
                     params_file,
                     {'yaml_filename': map_yaml}
                 ],
-                extra_arguments=[{'use_intra_process_comms': True}],
             ),
             # AMCL
             ComposableNode(
