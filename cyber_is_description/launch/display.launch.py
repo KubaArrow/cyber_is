@@ -16,7 +16,6 @@ def generate_launch_description():
     )
 
     xacro_file = PathJoinSubstitution([FindPackageShare('cyber_is_description'), 'urdf', 'cyber_is.xacro'])
-    rviz_config = PathJoinSubstitution([FindPackageShare('cyber_is_description'), 'rviz', 'cyber_is.rviz'])
 
     # Use xacro to generate the robot_description
     robot_description_content = Command([FindExecutable(name='xacro'), ' ', xacro_file])
@@ -47,19 +46,11 @@ def generate_launch_description():
         parameters=[robot_description]
     )
 
-    rviz = Node(
-        package='rviz2',
-        executable='rviz2',
-        name='rviz2',
-        arguments=['-d', rviz_config],
-        output='screen',
-        parameters=[robot_description]
-    )
+
 
     return LaunchDescription([
         use_gui_arg,
         joint_state_publisher_gui,
         joint_state_publisher,
         robot_state_publisher,
-        rviz,
     ])
