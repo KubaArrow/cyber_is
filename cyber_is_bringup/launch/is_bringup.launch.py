@@ -122,7 +122,7 @@ def generate_launch_description() -> LaunchDescription:
         # Core flags
         DeclareLaunchArgument('use_sim_time', default_value='false',
                               description='Use simulation (Gazebo) clock if true'),
-        DeclareLaunchArgument('start_description', default_value='false',
+        DeclareLaunchArgument('start_description', default_value='true',
                               description='Start robot description + RViz'),
         DeclareLaunchArgument('use_gui', default_value='false',
                               description='Use joint_state_publisher_gui if true'),
