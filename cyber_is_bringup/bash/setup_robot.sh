@@ -17,7 +17,7 @@ export ROS_DOMAIN_ID=2
 
 # --- Launch
 exec ros2 launch cyber_is_bringup is_bringup.launch.py \
-  start_description:=start \
+  start_description:=true \
   use_gui:=false \
   start_navigation:=true \
   autostart:=true \
