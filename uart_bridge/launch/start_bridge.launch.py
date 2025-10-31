@@ -10,7 +10,7 @@ def generate_launch_description() -> LaunchDescription:
             name='uart_bridge',
             output='screen',
             parameters=[
-                {'uart_port': '/dev/ttyACM0'},
+                {'uart_port': '/dev/ttyUSB0'},
                 {'frequency': 200},
                 {'twist_topic': '/cmd_vel'},
                 {'pose_topic': '/slam_out_pose'},
