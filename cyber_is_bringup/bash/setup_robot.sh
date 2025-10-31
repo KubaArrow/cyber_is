@@ -13,7 +13,7 @@ source /home/is/cyber_ws/install/setup.bash
 export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
 
 # --- Optional: ROS_DOMAIN_ID if you use multiple robots/networks
-export ROS_DOMAIN_ID=0
+export ROS_DOMAIN_ID=2
 
 # --- Launch
 exec ros2 launch cyber_is_bringup is_bringup.launch.py \
