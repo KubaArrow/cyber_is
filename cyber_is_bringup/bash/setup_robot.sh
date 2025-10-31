@@ -1,7 +1,10 @@
 #!/usr/bin/env bash
-# Purpose: bring up Cyber IS (ROS 2 Humble) on boot
-set -euo pipefail
+#!/usr/bin/env bash
+# robust: ERR + pipefail, ale BEZ -u podczas source
+set -Eeo pipefail
 
+# --- tymczasowo wyłącz -u, bo setup.bash używa nieistniejących zmiennych
+set +u
 # --- ROS 2 environment
 source /opt/ros/humble/setup.bash
 source /home/is/cyber_ws/install/setup.bash
