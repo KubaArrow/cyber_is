@@ -1,5 +1,6 @@
 <?xml version="1.0"?>
 <robot name="tracked_robot" xmlns:xacro="http://www.ros.org/wiki/xacro">
+  <!-- ROS 2 ament-index lookup -->
   <xacro:include filename="$(find cyber_is_description)/urdf/common_properties.xacro"/>
 
   <!-- Parametry (stałe) używane w modelu -->
