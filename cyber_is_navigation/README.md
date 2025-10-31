@@ -14,6 +14,15 @@ Ten pakiet dostarcza lekką konfigurację Nav2 uruchamianą w jednym kontenerze 
   - `ros2 launch cyber_is_navigation start_navigation.launch.py map:=/path/to/map.yaml`
 - RViz2: wyślij goal przez akcję `NavigateToPose` — robot powinien jechać stabilnie.
 
+### Dynamiczny mapping (SLAM + Nav2)
+- Wymagane: `sudo apt install ros-humble-slam-toolbox`
+- Start samego SLAM + Nav2 (bez map_server/AMCL):
+  - `ros2 launch cyber_is_navigation start_slam_navigation.launch.py`
+    - Parametry: `slam_params_file` (domyślnie `config/slam_toolbox_online_async.yaml`), `params_file` (Nav2)
+- Albo przez bringup: `ros2 launch cyber_is_bringup is_bringup.launch.py use_slam:=true`
+- Globalna costmapa subskrybuje `/map` z trwałym QoS (`map_subscribe_transient_local: true`).
+- Zapis mapy (w innym terminalu): `ros2 service call /slam_toolbox/save_map slam_toolbox/srv/SaveMap "{name: '/tmp/map', format: 'pgm'}"`
+
 ### Pliki i uruchamianie
 - `launch/start_navigation.launch.py` — uruchamia w jednym procesie: `planner_server` (Smac2D), `controller_server` (RegulatedPurePursuit), `bt_navigator`, `behavior_server`, `map_server`, `amcl` + `nav2_lifecycle_manager`.
 - `config/nav2_params.yaml` — parametry Nav2 gotowe do strojenia na RPi4.
@@ -49,6 +58,8 @@ Przykład z własnym plikiem parametrów:
 
 ### Interfejs
 - Zamiast `move_base` używany jest Nav2 `NavigateToPose` (akcja). Klienci powinni publikować cele poprzez tę akcję lub RViz2.
+  - Przykład CLI (od Humble):
+    - `ros2 action send_goal /navigate_to_pose nav2_msgs/action/NavigateToPose "{pose: {header: {frame_id: 'map'}, pose: {position: {x: 1.0, y: 0.5, z: 0.0}, orientation: {z: 0.0, w: 1.0}}}}"`
 
 ### Kompatybilność i DoD
 - Buduje się `colcon` na Jammy/Humble (x86_64, ARM)

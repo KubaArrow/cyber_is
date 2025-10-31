@@ -2,8 +2,8 @@
 
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
-from launch.conditions import IfCondition
-from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
+from launch.conditions import IfCondition, UnlessCondition
+from launch.substitutions import LaunchConfiguration, PathJoinSubstitution, PythonExpression
 from launch.launch_description_sources import PythonLaunchDescriptionSource, AnyLaunchDescriptionSource
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
@@ -26,6 +26,8 @@ def generate_launch_description() -> LaunchDescription:
     nav_params_file = LaunchConfiguration('nav_params_file')
     map_yaml = LaunchConfiguration('map')
     autostart = LaunchConfiguration('autostart')
+    use_slam = LaunchConfiguration('use_slam')
+    slam_params_file = LaunchConfiguration('slam_params_file')
 
     # Local params for nodes
     uart_bridge_params_file = LaunchConfiguration('uart_bridge_params_file')
@@ -94,7 +96,20 @@ def generate_launch_description() -> LaunchDescription:
             'map': map_yaml,
             'autostart': autostart,
         }.items(),
-        condition=IfCondition(start_navigation),
+        condition=IfCondition(PythonExpression([start_navigation, ' and not ', use_slam])),
+    )
+
+    navigation_slam_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(PathJoinSubstitution([
+            FindPackageShare('cyber_is_navigation'), 'launch', 'start_slam_navigation.launch.py'
+        ])),
+        launch_arguments={
+            'use_sim_time': use_sim_time,
+            'params_file': nav_params_file,
+            'slam_params_file': slam_params_file,
+            'autostart': autostart,
+        }.items(),
+        condition=IfCondition(PythonExpression([start_navigation, ' and ', use_slam])),
     )
 
     # LIDAR (ld14p.launch.py)
@@ -148,6 +163,11 @@ def generate_launch_description() -> LaunchDescription:
                               description='Full path to the map YAML file'),
         DeclareLaunchArgument('autostart', default_value='true',
                               description='Automatically startup the Nav2 stack'),
+        DeclareLaunchArgument('use_slam', default_value='false',
+                              description='If true, start SLAM Toolbox and Nav2 without map_server/AMCL'),
+        DeclareLaunchArgument('slam_params_file', default_value=PathJoinSubstitution([
+            FindPackageShare('cyber_is_navigation'), 'config', 'slam_toolbox_online_async.yaml'
+        ]), description='Full path to SLAM toolbox parameters YAML'),
 
         # Per-node parameter files
         DeclareLaunchArgument('uart_bridge_params_file', default_value=default_uart_params,
@@ -165,4 +185,5 @@ def generate_launch_description() -> LaunchDescription:
         lidar_launch,
         rosbridge_launch,
         navigation_launch,
+        navigation_slam_launch,
     ])

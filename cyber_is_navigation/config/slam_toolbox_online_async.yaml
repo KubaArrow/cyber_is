@@ -1,0 +1,37 @@
+slam_toolbox:
+  ros__parameters:
+    use_sim_time: false
+
+    # Frames
+    odom_frame: odom
+    map_frame: map
+    base_frame: base_link
+
+    # Topics
+    scan_topic: scan
+
+    # Core
+    mode: mapping              # online mapping
+    resolution: 0.05           # map resolution (m/cell)
+    min_laser_range: 0.05
+    max_laser_range: 12.0
+    transform_publish_period: 0.05   # [s]
+    map_update_interval: 0.3         # [s]
+    publish_period: 0.05              # [s] map topic publish period
+    max_submaps: -1                   # unlimited
+
+    # Optimization / loop closure (safe defaults for Humble)
+    throttle_scans: 1
+    scan_buffer_size: 10
+    scan_buffer_maximum_scan_distance: 10.0
+    link_match_minimum_response_fine: 0.1
+    link_scan_maximum_distance: 1.5
+    do_loop_closing: true
+    loop_search_maximum_distance: 3.0
+    loop_match_minimum_chain_size: 10
+    loop_match_maximum_variance_coarse: 3.0
+    loop_match_minimum_response_coarse: 0.35
+    loop_match_minimum_response_fine: 0.45
+
+    enable_interactive_mode: false
+
