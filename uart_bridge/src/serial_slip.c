@@ -67,6 +67,36 @@ static const char *SerialSlipErrors[SS_ERR_MAX] = {
     "SS_ERR_DECODE"
 };
 
+// Mapowanie liczbowej prędkości na stałą termios
+static speed_t map_baud_rate(int baud_rate)
+{
+    switch (baud_rate) {
+        case 9600: return B9600;
+        case 19200: return B19200;
+        case 38400: return B38400;
+        case 57600: return B57600;
+        case 115200: return B115200;
+#ifdef B230400
+        case 230400: return B230400;
+#endif
+#ifdef B460800
+        case 460800: return B460800;
+#endif
+#ifdef B500000
+        case 500000: return B500000;
+#endif
+#ifdef B576000
+        case 576000: return B576000;
+#endif
+#ifdef B921600
+        case 921600: return B921600;
+#endif
+        default:
+            SS_LOG_WARN("Unsupported baud %d, falling back to 115200\n", baud_rate);
+            return B115200;
+    }
+}
+
 // Uwaga: w tej wersji zakładamy, że struktura SerialSlip jest zdefiniowana np. tak:
 /*
 typedef struct MessageNode {
@@ -384,8 +414,9 @@ static SerialSlipError attempt_reconnect(SerialSlip *ctx)
         ctx->fd = -1;
         return SS_ERR_COMM_STATE;
     }
-    cfsetispeed(&options, B115200);
-    cfsetospeed(&options, B115200);
+    speed_t spd_re = map_baud_rate(ctx->baud_rate);
+    cfsetispeed(&options, spd_re);
+    cfsetospeed(&options, spd_re);
     options.c_cflag &= ~PARENB;      // brak parzystości
     options.c_cflag &= ~CSTOPB;      // jeden bit stopu
     options.c_cflag &= ~CSIZE;
@@ -459,9 +490,9 @@ static void *serial_slip_read_thread(void *param)
 
 //--------------------------------------------------------------------------
 // Otwarcie portu szeregowego i inicjalizacja struktury SerialSlip.
-SerialSlip *serial_slip_open(const char *comPort)
+SerialSlip *serial_slip_open_ex(const char *comPort, int baud_rate)
 {
-    SS_LOG_DEBUG("Opening serial port: %s\n", comPort);
+    SS_LOG_DEBUG("Opening serial port: %s (baud %d)\n", comPort, baud_rate);
     SerialSlip *ctx = (SerialSlip *)malloc(sizeof(SerialSlip));
     if (!ctx) {
         SS_LOG_ERROR("Memory error: Failed to allocate SerialSlip\n");
@@ -469,6 +500,7 @@ SerialSlip *serial_slip_open(const char *comPort)
     }
     memset(ctx, 0, sizeof(SerialSlip));
     strncpy(ctx->portName, comPort, sizeof(ctx->portName) - 1);
+    ctx->baud_rate = baud_rate;
     ctx->fd = open(ctx->portName, O_RDWR | O_NOCTTY | O_NDELAY);
     if (ctx->fd < 0) {
         SS_LOG_ERROR("Port error: Failed to open %s (error %s)\n", ctx->portName, strerror(errno));
@@ -483,8 +515,9 @@ SerialSlip *serial_slip_open(const char *comPort)
         free(ctx);
         return NULL;
     }
-    cfsetispeed(&options, B115200);
-    cfsetospeed(&options, B115200);
+    speed_t spd = map_baud_rate(ctx->baud_rate);
+    cfsetispeed(&options, spd);
+    cfsetospeed(&options, spd);
     options.c_cflag &= ~PARENB;
     options.c_cflag &= ~CSTOPB;
     options.c_cflag &= ~CSIZE;
@@ -533,6 +566,12 @@ SerialSlip *serial_slip_open(const char *comPort)
     }
     SS_LOG_DEBUG("SerialSlip initialized successfully on port %s\n", comPort);
     return ctx;
+}
+
+SerialSlip *serial_slip_open(const char *comPort)
+{
+    // Zachowanie wstecznej kompatybilności: domyślnie 115200
+    return serial_slip_open_ex(comPort, 115200);
 }
 
 //------------------------------------------------------------------------------

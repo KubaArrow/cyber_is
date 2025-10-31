@@ -27,6 +27,7 @@ public:
   UartBridgeNode() : rclcpp::Node("uart_bridge"), slip_(nullptr), counter_(0) {
     // Declare parameters
     uart_port_ = this->declare_parameter<std::string>("uart_port", "/dev/ttyACM0");
+    baud_rate_ = this->declare_parameter<int>("baud_rate", 115200);
     frequency_ = this->declare_parameter<int>("frequency", 100);
 
     twist_topic_ = this->declare_parameter<std::string>("twist_topic", "/cmd_vel");
@@ -66,7 +67,7 @@ public:
                                "Ros2 read params, prepared subscribers and publishers");
 
     // Open serial
-    slip_ = serial_slip_open(uart_port_.c_str());
+    slip_ = serial_slip_open_ex(uart_port_.c_str(), baud_rate_);
     if (!slip_) {
       this->publishPackageStatus(diagnostic_msgs::msg::DiagnosticStatus::ERROR, "FAILED SERIAL OPENED",
                                  "Failed to open serial slip");
@@ -108,7 +109,7 @@ private:
 
   bool ensureSlip() {
     if (slip_) return true;
-    slip_ = serial_slip_open(uart_port_.c_str());
+    slip_ = serial_slip_open_ex(uart_port_.c_str(), baud_rate_);
     if (!slip_) {
       RCLCPP_ERROR(this->get_logger(), "Failed to open serial slip on %s", uart_port_.c_str());
       return false;
@@ -320,6 +321,7 @@ private:
   // Params
   std::string uart_port_;
   int frequency_;
+  int baud_rate_;
   std::string twist_topic_, pose_topic_;
   std::string odom_topic_, imu_topic_, magnet_topic_, line_detector_topic_, leds_topic_, battery_topic_, status_topic_;
   std::string odom_frame_, imu_frame_;

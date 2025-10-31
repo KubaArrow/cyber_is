@@ -67,6 +67,7 @@ typedef struct SerialSlip {
     volatile bool stopThread;
     volatile bool connected;
     char portName[64];
+    int baud_rate;           // aktualnie skonfigurowana prędkość portu
 
     pthread_mutex_t writeLock;
     pthread_mutex_t queueLock;
@@ -79,6 +80,8 @@ typedef struct SerialSlip {
 } SerialSlip;
 
 SerialSlip *serial_slip_open(const char *comPort);
+// Wersja rozszerzona ze wskazaną prędkością portu (np. 115200, 230400, 921600)
+SerialSlip *serial_slip_open_ex(const char *comPort, int baud_rate);
 void serial_slip_close(SerialSlip *ctx);
 SerialSlipError serial_slip_write(SerialSlip *ctx, const uint8_t *data, size_t len);
 SerialSlipError serial_slip_get_message(SerialSlip *ctx, uint8_t *buffer, size_t bufferSize, size_t *msgLen, unsigned long timeout);
