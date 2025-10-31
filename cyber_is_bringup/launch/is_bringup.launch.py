@@ -18,6 +18,7 @@ def generate_launch_description() -> LaunchDescription:
     start_uart_bridge = LaunchConfiguration('start_uart_bridge')
     start_led_controller = LaunchConfiguration('start_led_controller')
     start_supervisor = LaunchConfiguration('start_supervisor')
+    start_lidar = LaunchConfiguration('start_lidar')  # NEW
 
     # Navigation args
     nav_params_file = LaunchConfiguration('nav_params_file')
@@ -94,6 +95,16 @@ def generate_launch_description() -> LaunchDescription:
         condition=IfCondition(start_navigation),
     )
 
+    # NEW: LIDAR (ld14p.launch.py)
+    lidar_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(PathJoinSubstitution([
+            FindPackageShare('ldlidar_sl_ros2'), 'launch', 'ld14p.launch.py'
+        ])),
+        # Jeśli kiedyś będziesz chciał parametryzować port, frame_id itp.,
+        # można tu dodać launch_arguments={ 'serial_port': ..., 'frame_id': ... }.items()
+        condition=IfCondition(start_lidar),
+    )
+
     return LaunchDescription([
         # Core flags
         DeclareLaunchArgument('use_sim_time', default_value='false',
@@ -110,6 +121,8 @@ def generate_launch_description() -> LaunchDescription:
                               description='Start LED controller node'),
         DeclareLaunchArgument('start_supervisor', default_value='true',
                               description='Start supervisor node'),
+        DeclareLaunchArgument('start_lidar', default_value='true',
+                              description='Start LDLIDAR SL (ld14p) launcher'),  # NEW
 
         # Navigation args
         DeclareLaunchArgument('nav_params_file', default_value=default_nav_params,
@@ -132,5 +145,6 @@ def generate_launch_description() -> LaunchDescription:
         uart_bridge,
         leds_controller,
         supervisor,
+        lidar_launch,        # NEW
         navigation_launch,
     ])

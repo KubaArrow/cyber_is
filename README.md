@@ -112,25 +112,39 @@ ros2 launch cyber_is_description display.launch.py use_gui:=false
 Example systemd unit to start the ROS 2 bringup (adjust paths and user):
 ```ini
 [Unit]
+[Unit]
 Description=Cyber IS Bringup (ROS 2 Humble)
-After=network-online.target
+After=network-online.target time-sync.target
 Wants=network-online.target
 
 [Service]
 Type=simple
 User=victoria
-Environment=RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
-ExecStart=/bin/bash -lc 'source /opt/ros/humble/setup.bash && source /home/victoria/cyber_is_ws/install/setup.bash && ros2 launch cyber_is_bringup is_bringup.launch.py start_description:=false use_gui:=false start_navigation:=true autostart:=true map:=/home/victoria/cyber_is_ws/src/cyber_is/maps/map.yaml start_uart_bridge:=true start_led_controller:=true start_supervisor:=true'
-Restart=on-failure
-RestartSec=3
+WorkingDirectory=/home/victoria/cyber_ws
+# Daj chwilę na podniesienie się sieci/USB
+ExecStartPre=/bin/sleep 3
+ExecStart=/home/victoria/cyber_ws/src/cyber_is/cyber_is_bringup/bash/setup_robot.sh
+Restart=always
+RestartSec=5
+KillSignal=SIGINT
+TimeoutStopSec=30
+StandardOutput=journal
+StandardError=journal
+Environment=LANG=C.UTF-8
+Environment=LC_ALL=C.UTF-8
+# Opcjonalnie: jeżeli LIDAR pojawia się jako /dev/ttyUSB0 i potrzebujesz czekać
+# After=dev-ttyUSB0.device
 
 [Install]
 WantedBy=multi-user.target
+
 ```
 
 Activation:
 ```bash
 sudo nano /etc/systemd/system/cyber-is-bringup.service  # paste and adjust the template above
+chmod +x /home/victoria/cyber_ws/src/cyber_is/cyber_is_bringup/bash/setup_robot.sh
+
 sudo systemctl daemon-reload
 sudo systemctl enable cyber-is-bringup.service
 sudo systemctl start cyber-is-bringup.service
