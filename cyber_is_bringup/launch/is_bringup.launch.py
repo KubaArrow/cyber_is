@@ -4,7 +4,7 @@ from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription
 from launch.conditions import IfCondition
 from launch.substitutions import LaunchConfiguration, PathJoinSubstitution
-from launch.launch_description_sources import PythonLaunchDescriptionSource
+from launch.launch_description_sources import PythonLaunchDescriptionSource, AnyLaunchDescriptionSource
 from launch_ros.actions import Node
 from launch_ros.substitutions import FindPackageShare
 
@@ -18,7 +18,9 @@ def generate_launch_description() -> LaunchDescription:
     start_uart_bridge = LaunchConfiguration('start_uart_bridge')
     start_led_controller = LaunchConfiguration('start_led_controller')
     start_supervisor = LaunchConfiguration('start_supervisor')
-    start_lidar = LaunchConfiguration('start_lidar')  # NEW
+    start_lidar = LaunchConfiguration('start_lidar')
+    start_rosbridge = LaunchConfiguration('start_rosbridge')
+    rosbridge_port = LaunchConfiguration('rosbridge_port')
 
     # Navigation args
     nav_params_file = LaunchConfiguration('nav_params_file')
@@ -95,14 +97,25 @@ def generate_launch_description() -> LaunchDescription:
         condition=IfCondition(start_navigation),
     )
 
-    # NEW: LIDAR (ld14p.launch.py)
+    # LIDAR (ld14p.launch.py)
     lidar_launch = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(PathJoinSubstitution([
             FindPackageShare('ldlidar_sl_ros2'), 'launch', 'ld14p.launch.py'
         ])),
-        # Jeśli kiedyś będziesz chciał parametryzować port, frame_id itp.,
-        # można tu dodać launch_arguments={ 'serial_port': ..., 'frame_id': ... }.items()
+        # If you need to pass serial/frame/topic later, add launch_arguments={ ... }.items()
         condition=IfCondition(start_lidar),
+    )
+
+    # Rosbridge WebSocket (XML launch)
+    rosbridge_launch = IncludeLaunchDescription(
+        AnyLaunchDescriptionSource(PathJoinSubstitution([
+            FindPackageShare('rosbridge_server'), 'launch', 'rosbridge_websocket_launch.xml'
+        ])),
+        launch_arguments={
+            'port': rosbridge_port,
+            # 'address': '0.0.0.0',  # uncomment to bind explicitly
+        }.items(),
+        condition=IfCondition(start_rosbridge),
     )
 
     return LaunchDescription([
@@ -122,7 +135,11 @@ def generate_launch_description() -> LaunchDescription:
         DeclareLaunchArgument('start_supervisor', default_value='true',
                               description='Start supervisor node'),
         DeclareLaunchArgument('start_lidar', default_value='true',
-                              description='Start LDLIDAR SL (ld14p) launcher'),  # NEW
+                              description='Start LDLIDAR SL (ld14p) launcher'),
+        DeclareLaunchArgument('start_rosbridge', default_value='true',
+                              description='Start rosbridge websocket server'),
+        DeclareLaunchArgument('rosbridge_port', default_value='9090',
+                              description='rosbridge websocket port'),
 
         # Navigation args
         DeclareLaunchArgument('nav_params_file', default_value=default_nav_params,
@@ -145,6 +162,7 @@ def generate_launch_description() -> LaunchDescription:
         uart_bridge,
         leds_controller,
         supervisor,
-        lidar_launch,        # NEW
+        lidar_launch,
+        rosbridge_launch,
         navigation_launch,
     ])
