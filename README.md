@@ -24,7 +24,8 @@ sudo apt update && sudo apt install -y \
   ros-humble-nav2-bringup ros-humble-nav2-costmap-2d ros-humble-nav2-planner ros-humble-nav2-controller \
   ros-humble-nav2-bt-navigator ros-humble-nav2-behaviors ros-humble-nav2-lifecycle-manager ros-humble-nav2-amcl ros-humble-nav2-map-server \
   ros-humble-joy \
-  ros-humble-rmw-cyclonedds-cpp
+  ros-humble-rmw-cyclonedds-cpp \
+  ros-humble-rosbridge-server ros-humble-rosapi
 ```
 
 Add the user to the `dialout` group for access to `/dev/ttyACM0`:

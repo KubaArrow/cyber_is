@@ -36,7 +36,6 @@ def generate_launch_description():
         emulate_tty=True,
         parameters=[{'use_sim_time': use_sim_time}],
         arguments=['--ros-args', '--log-level', 'info'],
-        intra_process_comms=True,
         composable_node_descriptions=[
             # Map Server
             ComposableNode(
@@ -47,6 +46,7 @@ def generate_launch_description():
                     params_file,
                     {'yaml_filename': map_yaml}
                 ],
+                extra_arguments=[{'use_intra_process_comms': True}],
             ),
             # AMCL
             ComposableNode(
@@ -54,6 +54,7 @@ def generate_launch_description():
                 plugin='nav2_amcl::AmclNode',
                 name='amcl',
                 parameters=[params_file],
+                extra_arguments=[{'use_intra_process_comms': True}],
             ),
             # Planner Server (Smac 2D)
             ComposableNode(
@@ -61,6 +62,7 @@ def generate_launch_description():
                 plugin='nav2_planner::PlannerServer',
                 name='planner_server',
                 parameters=[params_file],
+                extra_arguments=[{'use_intra_process_comms': True}],
             ),
             # Controller Server (RPP)
             ComposableNode(
@@ -68,6 +70,7 @@ def generate_launch_description():
                 plugin='nav2_controller::ControllerServer',
                 name='controller_server',
                 parameters=[params_file],
+                extra_arguments=[{'use_intra_process_comms': True}],
             ),
             # Behavior Server
             ComposableNode(
@@ -75,6 +78,7 @@ def generate_launch_description():
                 plugin='nav2_behaviors::BehaviorServer',
                 name='behavior_server',
                 parameters=[params_file],
+                extra_arguments=[{'use_intra_process_comms': True}],
             ),
             # BT Navigator
             ComposableNode(
@@ -85,6 +89,7 @@ def generate_launch_description():
                     params_file,
                     {'default_bt_xml_filename': default_bt_xml}
                 ],
+                extra_arguments=[{'use_intra_process_comms': True}],
             ),
         ]
     )
@@ -121,4 +126,3 @@ def generate_launch_description():
         container,
         lifecycle_manager,
     ])
-
