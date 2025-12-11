@@ -29,6 +29,24 @@ if [ -z "${USE_GUI+x}" ]; then
   fi
 fi
 
+if [ -z "${MAP_FILE:-}" ]; then
+  NAV_SHARE=$(ros2 pkg prefix -q cyber_is_navigation 2>/dev/null | head -n 1)
+  if [ -n "$NAV_SHARE" ] && [ -f "$NAV_SHARE/share/cyber_is_navigation/maps/map.yaml" ]; then
+    MAP_FILE="$NAV_SHARE/share/cyber_is_navigation/maps/map.yaml"
+  elif [ -f "/home/is/cyber_ws/src/cyber_is/cyber_is_navigation/maps/map.yaml" ]; then
+    MAP_FILE="/home/is/cyber_ws/src/cyber_is/cyber_is_navigation/maps/map.yaml"
+  else
+    echo "Warning: default map.yaml not found. Pass MAP_FILE=/path/to/map.yaml" >&2
+    MAP_FILE=''
+  fi
+fi
+
+if [ -n "$MAP_FILE" ]; then
+  MAP_ARG=(map:=${MAP_FILE})
+else
+  MAP_ARG=()
+fi
+
 COMMON_ARGS=(
   start_description:=true
   use_gui:=${USE_GUI}
@@ -47,5 +65,5 @@ if [ "$USE_SLAM" = "true" ]; then
 else
   exec ros2 launch cyber_is_bringup is_bringup.launch.py \
     "${COMMON_ARGS[@]}" \
-    map:=/home/is/cyber_ws/src/cyber_is/maps/map.yaml
+    "${MAP_ARG[@]}"
 fi

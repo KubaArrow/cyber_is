@@ -3,6 +3,7 @@ from launch.actions import DeclareLaunchArgument
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import ComposableNodeContainer, Node
 from launch_ros.descriptions import ComposableNode
+from nav2_common.launch import RewrittenYaml
 from ament_index_python.packages import get_package_share_directory
 import os
 
@@ -31,6 +32,15 @@ def generate_launch_description():
         'navigate_w_replanning_and_recovery.xml'
     )
 
+    configured_params = RewrittenYaml(
+        source_file=params_file,
+        root_key='',
+        param_rewrites={
+            'use_sim_time': use_sim_time,
+        },
+        convert_types=True,
+    )
+
     container = ComposableNodeContainer(
         name='nav2_container',
         namespace='',
@@ -48,8 +58,8 @@ def generate_launch_description():
                 plugin='nav2_map_server::MapServer',
                 name='map_server',
                 parameters=[
-                    params_file,
-                    {'yaml_filename': map_yaml}
+                    configured_params,
+                    {'yaml_filename': map_yaml},
                 ],
             ),
             # AMCL
@@ -57,7 +67,7 @@ def generate_launch_description():
                 package='nav2_amcl',
                 plugin='nav2_amcl::AmclNode',
                 name='amcl',
-                parameters=[params_file],
+                parameters=[configured_params],
                 extra_arguments=[{'use_intra_process_comms': True}],
             ),
             # Planner Server (Smac 2D)
@@ -65,7 +75,7 @@ def generate_launch_description():
                 package='nav2_planner',
                 plugin='nav2_planner::PlannerServer',
                 name='planner_server',
-                parameters=[params_file],
+                parameters=[configured_params],
                 extra_arguments=[{'use_intra_process_comms': True}],
             ),
             # Controller Server (RPP)
@@ -73,7 +83,7 @@ def generate_launch_description():
                 package='nav2_controller',
                 plugin='nav2_controller::ControllerServer',
                 name='controller_server',
-                parameters=[params_file],
+                parameters=[configured_params],
                 extra_arguments=[{'use_intra_process_comms': True}],
             ),
             # Behavior Server
@@ -81,7 +91,7 @@ def generate_launch_description():
                 package='nav2_behaviors',
                 plugin=behavior_plugin,
                 name='behavior_server',
-                parameters=[params_file],
+                parameters=[configured_params],
                 extra_arguments=[{'use_intra_process_comms': True}],
             ),
             # BT Navigator
@@ -90,7 +100,7 @@ def generate_launch_description():
                 plugin='nav2_bt_navigator::BtNavigator',
                 name='bt_navigator',
                 parameters=[
-                    params_file,
+                    configured_params,
                     {'default_bt_xml_filename': default_bt_xml}
                 ],
                 extra_arguments=[{'use_intra_process_comms': True}],

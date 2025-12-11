@@ -16,4 +16,9 @@ install(FILES
   DESTINATION share/${PROJECT_NAME}/config
 )
 
+install(DIRECTORY
+  maps/
+  DESTINATION share/${PROJECT_NAME}/maps
+)
+
 ament_package()

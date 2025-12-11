@@ -1,66 +1,89 @@
 #!/usr/bin/env python3
-import rospy
-from nav_msgs.msg import Odometry
-import matplotlib.pyplot as plt
-from matplotlib.animation import FuncAnimation
+"""
+ROS 2 odometry plotter for /low_level_odom.
+"""
 from collections import deque
+import threading
 import time
 
-# Czas trwania okna danych [s]
-WINDOW_SIZE = 10
+import matplotlib.pyplot as plt
+from matplotlib.animation import FuncAnimation
+from nav_msgs.msg import Odometry
+import rclpy
+from rclpy.executors import SingleThreadedExecutor
+from rclpy.node import Node
 
-# Bufory na dane
-time_buffer = deque()
-linear_buffer = deque()
-angular_buffer = deque()
+WINDOW_SIZE = 10.0  # seconds
 
-start_time = None
 
-def odom_callback(msg):
-    global start_time
-    if start_time is None:
-        start_time = time.time()
-    t = time.time() - start_time
+class OdomPlotter(Node):
+    def __init__(self):
+        super().__init__('odom_plotter')
+        self.subscription = self.create_subscription(
+            Odometry,
+            '/low_level_odom',
+            self.odom_callback,
+            10,
+        )
+        self._start_time = time.monotonic()
+        self._time_buffer = deque()
+        self._linear_buffer = deque()
+        self._angular_buffer = deque()
 
-    linear_x = msg.twist.twist.linear.x
-    angular_z = msg.twist.twist.angular.z
+    def odom_callback(self, msg: Odometry) -> None:
+        now = time.monotonic() - self._start_time
+        self._time_buffer.append(now)
+        self._linear_buffer.append(msg.twist.twist.linear.x)
+        self._angular_buffer.append(msg.twist.twist.angular.z)
 
-    time_buffer.append(t)
-    linear_buffer.append(linear_x)
-    angular_buffer.append(angular_z)
+        while self._time_buffer and (now - self._time_buffer[0]) > WINDOW_SIZE:
+            self._time_buffer.popleft()
+            self._linear_buffer.popleft()
+            self._angular_buffer.popleft()
 
-    # Usuń dane starsze niż okno czasowe
-    while time_buffer and (t - time_buffer[0] > WINDOW_SIZE):
-        time_buffer.popleft()
-        linear_buffer.popleft()
-        angular_buffer.popleft()
+    def has_data(self) -> bool:
+        return bool(self._time_buffer)
 
-def update_plot(frame):
-    if not time_buffer:
-        return
+    def data(self):
+        return list(self._time_buffer), list(self._linear_buffer), list(self._angular_buffer)
 
-    ax1.clear()
-    ax2.clear()
 
-    ax1.plot(time_buffer, linear_buffer, label='Linear Velocity (x)', color='green')
-    ax2.plot(time_buffer, angular_buffer, label='Angular Velocity (z)', color='orange')
+def main():
+    rclpy.init()
+    node = OdomPlotter()
+    executor = SingleThreadedExecutor()
+    executor.add_node(node)
+    spin_thread = threading.Thread(target=executor.spin, daemon=True)
+    spin_thread.start()
 
-    ax1.set_ylabel("Linear Velocity [m/s]")
-    ax2.set_ylabel("Angular Velocity [rad/s]")
-    ax2.set_xlabel("Time [s]")
+    fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(8, 6))
 
-    ax1.legend()
-    ax2.legend()
-    ax1.grid()
-    ax2.grid()
+    def update_plot(_frame):
+        if not node.has_data():
+            return
+        time_vals, linear_vals, angular_vals = node.data()
+        ax1.clear()
+        ax2.clear()
+        ax1.plot(time_vals, linear_vals, label='Linear Velocity (x)', color='green')
+        ax2.plot(time_vals, angular_vals, label='Angular Velocity (z)', color='orange')
+        ax1.set_ylabel("Linear Velocity [m/s]")
+        ax2.set_ylabel("Angular Velocity [rad/s]")
+        ax2.set_xlabel("Time [s]")
+        ax1.legend()
+        ax2.legend()
+        ax1.grid()
+        ax2.grid()
 
-# Inicjalizacja ROS i subskrybenta
-rospy.init_node('odom_plotter', anonymous=True)
-rospy.Subscriber('/low_level_odom', Odometry, odom_callback)
+    FuncAnimation(fig, update_plot, interval=100)
+    plt.tight_layout()
 
-# Inicjalizacja wykresu
-fig, (ax1, ax2) = plt.subplots(2, 1, figsize=(8, 6))
-ani = FuncAnimation(fig, update_plot, interval=100)
+    try:
+        plt.show()
+    finally:
+        executor.shutdown()
+        node.destroy_node()
+        rclpy.shutdown()
 
-plt.tight_layout()
-plt.show()
+
+if __name__ == '__main__':
+    main()

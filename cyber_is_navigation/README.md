@@ -10,6 +10,7 @@ Ten pakiet dostarcza lekką konfigurację Nav2 uruchamianą w jednym kontenerze 
 
 ### Szybki start
 - Zbuduj workspace: `colcon build` i `source install/setup.bash`
+- W pakiecie znajduje się przykładowa mapa (`share/cyber_is_navigation/maps/map.yaml`), którą możesz od razu wykorzystać w map_serverze lub zastąpić własną.
 - Uruchom Nav2 w kompozycji:
   - `ros2 launch cyber_is_navigation start_navigation.launch.py map:=/path/to/map.yaml`
 - RViz2: wyślij goal przez akcję `NavigateToPose` — robot powinien jechać stabilnie.
@@ -37,7 +38,7 @@ Przykład z własnym plikiem parametrów:
 - Costmapy i inflacja:
   - Global: `update/publish` 2.0 Hz, `resolution` 0.05–0.1 m, `static + inflation`
   - Local: rolling 6×6 m, `update/publish` 10 Hz, `obstacle + inflation`
-  - Inflacja: `inflation_radius`: 0.6–0.7, `cost_scaling_factor`: 3–5
+  - Inflacja: `inflation_radius`: 0.3–0.4, `cost_scaling_factor`: 3–4
   - `transform_tolerance`: 0.2–0.3 s (obie costmapy i kontroler)
 - AMCL:
   - `min_particles`: 500, `max_particles`: 1000

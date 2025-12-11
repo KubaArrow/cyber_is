@@ -38,6 +38,9 @@ def generate_launch_description() -> LaunchDescription:
     default_nav_params = PathJoinSubstitution([
         FindPackageShare('cyber_is_navigation'), 'config', 'nav2_params.yaml'
     ])
+    default_map_yaml = PathJoinSubstitution([
+        FindPackageShare('cyber_is_navigation'), 'maps', 'map.yaml'
+    ])
     default_uart_params = PathJoinSubstitution([
         FindPackageShare('cyber_is_bringup'), 'config', 'uart_bridge.yaml'
     ])
@@ -164,7 +167,7 @@ def generate_launch_description() -> LaunchDescription:
         # Navigation args
         DeclareLaunchArgument('nav_params_file', default_value=default_nav_params,
                               description='Full path to Nav2 parameters YAML'),
-        DeclareLaunchArgument('map', default_value='',
+        DeclareLaunchArgument('map', default_value=default_map_yaml,
                               description='Full path to the map YAML file'),
         DeclareLaunchArgument('autostart', default_value='true',
                               description='Automatically startup the Nav2 stack'),
